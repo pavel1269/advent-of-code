@@ -17,16 +17,29 @@ Assert $ret.B.Amount 1
 Assert $ret.B.Needs.Amount 1
 Assert $ret.B.Needs.Type "ORE"
 
-Assert (Produce-OreCost $reactions) 31
+Assert (Produce-OreCost $reactions).Cost 31
 
 $reactions = Get-Content "./input2.txt"
-Assert (Produce-OreCost $reactions) 165
+Assert (Produce-OreCost $reactions).Cost 165
 
 $reactions = Get-Content "./input3.txt"
-Assert (Produce-OreCost $reactions) 13312
+Assert (Produce-OreCost $reactions).Cost 13312
 
 $reactions = Get-Content "./input4.txt"
-Assert (Produce-OreCost $reactions) 180697
+Assert (Produce-OreCost $reactions).Cost 180697
 
 $reactions = Get-Content "./input5.txt"
-Assert (Produce-OreCost $reactions) 2210736
+Assert (Produce-OreCost $reactions).Cost 2210736
+
+# The 13312 ORE-per-FUEL example could produce 82892753 FUEL.
+# The 180697 ORE-per-FUEL example could produce 5586022 FUEL.
+# The 2210736 ORE-per-FUEL example could produce 460664 FUEL.
+
+$reactions = Get-Content "./input3.txt"
+Assert (Produce-OreCost $reactions 1000000000000).Fuel 82892753
+
+$reactions = Get-Content "./input4.txt"
+Assert (Produce-OreCost $reactions 1000000000000).Fuel 5586022
+
+$reactions = Get-Content "./input5.txt"
+Assert (Produce-OreCost $reactions 1000000000000).Fuel 460664
