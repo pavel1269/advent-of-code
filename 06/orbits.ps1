@@ -84,17 +84,13 @@ function Get-NumberOfOrbitees {
     )
 
     Write-Verbose "Calculating orbitees of '$($MapPoint.Name)' ('$Level')"
-    #$sum = $MapPoint.InOrbit.Count
     $sum = 0
     $sumChilds = $MapPoint.InOrbit | ForEach-Object { Get-NumberOfOrbitees $_ ($Level + 1) } | Measure-Object -Sum | Select-Object -ExpandProperty Sum
     $sum += $sumChilds
-    if ($Level -ge 1) {
-        $sum += $Level 
-    }
+    $sum += $Level 
 
     Write-Verbose "'$($MapPoint.Name)' has '$sum'"
     return $sum
-
 }
 
 function Get-NumberOfOrbitJumps {
