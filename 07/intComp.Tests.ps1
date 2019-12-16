@@ -84,6 +84,7 @@ $res = IntComp $code @(3, $res.Outputs[0])
 $res = IntComp $code @(2, $res.Outputs[0])
 $res = IntComp $code @(1, $res.Outputs[0])
 Assert (IntComp $code @(0, $res.Outputs[0])).Outputs @(43210)
+Assert (IntComp $code 4).OpCodeIndex 2
 
 $code = [int[]](Get-Content "./program-amplifiers-test2.txt").Split(',')
 $res = IntComp $code @(0, 0)

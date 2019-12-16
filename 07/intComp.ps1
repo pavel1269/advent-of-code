@@ -9,7 +9,10 @@ function IntComp {
         $OpCodes,
 
         [int[]]
-        $InputParams = @()
+        $InputParams = @(),
+        
+        [int]
+        $OpCodeIndex = 0
     )
 
     function Get-Op {
@@ -18,9 +21,11 @@ function IntComp {
         $op = $OpCodes[$index]
         if ($mode -eq 0) {
             $opVal = $OpCodes[$op]
+            Write-Verbose "Read value '$opVal' from address '$op'"
         }
         else {
             $opVal = $op
+            Write-Verbose "Read value '$opVal' directly"
         }
 
         return $opVal
@@ -28,7 +33,7 @@ function IntComp {
 
     $inputParamIndex = 0
     $outputs = [int[]]@()
-    for ($index = 0; $index -lt $OpCodes.Count; $index += $operands) {
+    for ($index = $OpCodeIndex; $index -lt $OpCodes.Count; $index += $operands) {
         $operands = 1
         $func = $OpCodes[$index]
 
@@ -39,7 +44,7 @@ function IntComp {
         $tmp = [Math]::Floor($tmp / 10)
         $modeOp3 = $tmp -band 1
 
-        Write-Verbose "Instruction 1: '$($func % 100)'('$func') (op1 mode: '$modeOp1', op2 mode: '$modeOp2', op3 mode: '$modeOp3')"
+        Write-Verbose "Instruction '$index': '$($func % 100)'('$func') (op1 mode: '$modeOp1', op2 mode: '$modeOp2', op3 mode: '$modeOp3')"
 
         switch ($func % 100) {
             1 {
@@ -74,7 +79,12 @@ function IntComp {
                 }
 
                 if ($inputParamIndex -ge $InputParams.Count) {
-                    throw "Missing input parameter"
+                    Write-Verbose "[$input] = ?"
+                    return @{
+                        OpCodes = $OpCodes
+                        OpCodeIndex = $index
+                        Outputs = $outputs
+                    }
                 }
 
                 $operands = 2
