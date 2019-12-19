@@ -184,4 +184,11 @@ function Get-ResultPart1 {
 
 function Get-ResultPart2 {
 
+    $code = Get-Content ".\boost.txt"
+    $OpCode = $code.Split(',') | ForEach-Object { [int64]$_}
+
+    $res = IntComp $OpCode 2 -Verbose
+    $res
+
+    # 51135 - correct
 }
