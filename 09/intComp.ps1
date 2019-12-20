@@ -8,11 +8,15 @@ function IntComp {
         [int64[]]
         $OpCodesArray,
 
+        [int64[]]
+        $InputParams = @(),
+        
         [int64]
-        $InputParam = -1
+        $OpCodeIndex = 0
     )
 
     function Get-Op {
+        [CmdletBinding()]
         param([Hashtable]$OpCodes, [int64]$index, $mode)
 
         $op = $OpCodes."$index"
@@ -33,6 +37,7 @@ function IntComp {
     }
 
     function Get-OutOp {
+        [CmdletBinding()]
         param([Hashtable]$OpCodes, [int64]$index, $mode)
 
         if ($mode -eq 1) {
@@ -45,11 +50,23 @@ function IntComp {
         return $op
     }
 
+    function Get-OutOpCodes {
+        [CmdletBinding()]
+        param([Hashtable]$OpCodes)
+        
+        $MaxOpCode = $OpCodes.Keys | ForEach-Object { [int64]$_ } | Sort-Object -Descending | Select-Object -First 1
+        $ResOpCodes = New-Object "int64[]" ($MaxOpCode + 1)
+        $MaxOpCode = $OpCodes.Keys | ForEach-Object { $ResOpCodes[[int64]$_] = $OpCodes.$_ }
+
+        return $ResOpCodes
+    }
+
     $OpCodes = @{}
     for ([int64]$i = 0; $i -lt $OpCodesArray.Count; $i++) {
         $OpCodes."$i" = $OpCodesArray[$i]
     }
 
+    $inputParamIndex = 0
     $outputs = @()
     $relativeBase = 0
     for ([int64]$index = 0; $index -lt $OpCodes.Count; $index += $operands) {
@@ -83,9 +100,20 @@ function IntComp {
                 Write-Verbose "[$op3] = '$op1Val' * '$op2Val' = '$($op1Val * $op2Val)'"
             }
             3 {
+                if ($inputParamIndex -ge $InputParams.Count) {
+                    Write-Verbose "[$input] = ?"
+                    $ResOpCodes = Get-OutOpCodes $OpCodes
+                    return @{
+                        OpCodes = $ResOpCodes
+                        OpCodeIndex = $index
+                        Outputs = $outputs
+                    }
+                }
+
                 $operands = 2
                 $op = Get-OutOp $OpCodes ($index + 1) $modeOp1
-                $OpCodes."$op" = $InputParam
+                $OpCodes."$op" = $InputParams[$inputParamIndex]
+                $inputParamIndex++
                 Write-Verbose "[$op] = '$InputParam'"
             }
             4 {
@@ -152,10 +180,7 @@ function IntComp {
             }
             99 {
                 $operands = 1
-
-                $MaxOpCode = $OpCodes.Keys | ForEach-Object { [int64]$_ } | Sort-Object -Descending | Select-Object -First 1
-                $ResOpCodes = New-Object "int64[]" ($MaxOpCode + 1)
-                $MaxOpCode = $OpCodes.Keys | ForEach-Object { $ResOpCodes[[int64]$_] = $OpCodes.$_ }
+                $ResOpCodes = Get-OutOpCodes $OpCodes
                 
                 return @{
                     OpCodes = $ResOpCodes
