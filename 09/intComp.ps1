@@ -33,7 +33,7 @@ function IntComp {
             throw "Unsupported mode '$mode'"
         }
 
-        return $opVal
+        return [int64]$opVal
     }
 
     function Get-OutOp {
@@ -47,7 +47,8 @@ function IntComp {
         if ($mode -eq 2) {
             $op += $relativeBase
         }
-        return $op
+
+        return [int64]$op
     }
 
     function Get-OutOpCodes {
