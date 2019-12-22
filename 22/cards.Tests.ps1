@@ -7,7 +7,7 @@ function Assert {
     [CmdletBinding()]
     param($a, $b)
 
-    if ($a.COunt -ne $b.COunt) {
+    if ($a.Count -ne $b.Count) {
         Write-Error "Arrays have different length, '$($a.Count)' vs '$($b.Count)'" -ErrorAction "stop"
     }
 
@@ -15,6 +15,14 @@ function Assert {
         if ($a[$index] -ne $b[$index]) {
             Write-Error "Differece at position '$index', '$($a[$index])' vs '$($b[$index])'" -ErrorAction "stop"
         }
+    }
+}
+
+function AssertScalar {
+    param($a, $b)
+
+    if ($a -ne $b) {
+        Write-Error "'$a' differs from '$b'" -ErrorAction "Stop"
     }
 }
 
@@ -59,3 +67,8 @@ $commands = @(
     "cut -1"
 )
 Assert (Shuffle-Deck $deck $commands) @(9,2,5,8,1,4,7,0,3,6)
+
+$commands = Get-Content "./part1.txt"
+AssertScalar (Get-CardAfterShuffle -deckSize 10007 -position 2019 -shuffleCommands $commands) 1867
+[Array]::Reverse($commands)
+AssertScalar (Get-CardBeforeShuffle -deckSize 10007 -position 1867 -shuffleCommands $commands) 2019
