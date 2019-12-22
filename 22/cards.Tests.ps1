@@ -70,5 +70,10 @@ Assert (Shuffle-Deck $deck $commands) @(9,2,5,8,1,4,7,0,3,6)
 
 $commands = Get-Content "./part1.txt"
 AssertScalar (Get-CardAfterShuffle -deckSize 10007 -position 2019 -shuffleCommands $commands) 1867
+AssertScalar (Get-CardAfterShuffle -deckSize 10007 -position 1867 -shuffleCommands $commands) 6250
+AssertScalar (Get-CardAfterShuffle -deckSize 10007 -position 6250 -shuffleCommands $commands) 8309
 [Array]::Reverse($commands)
 AssertScalar (Get-CardBeforeShuffle -deckSize 10007 -position 1867 -shuffleCommands $commands) 2019
+AssertScalar (Get-CardBeforeShuffle -deckSize 10007 -position 6250 -shuffleCommands $commands -iterations 2) 2019
+AssertScalar (Get-CardBeforeShuffle -deckSize 10007 -position 8309 -shuffleCommands $commands -iterations 2) 1867
+AssertScalar (Get-CardBeforeShuffle -deckSize 10007 -position 8309 -shuffleCommands $commands -iterations 3) 2019
