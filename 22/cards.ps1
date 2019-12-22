@@ -208,18 +208,47 @@ function Get-CardBeforeShuffle {
     # p2 = a p1 + b = a(a p0 + b) + b = a^2 p0 + a b + b
     # p3 = a p2 + b = a(a^2 p0 + a b + b) + b = a^3 p0 + a^2 b + a b + b
 
-    $bi = $b
-    for ($i = 1; $i -lt $iterations; $i++) {
-        $bi += (Power $a $i $deckSize) * $b
-        $bi = $bi % $deckSize
+    # $bi = $b
+    # for ($i = 1; $i -lt $iterations; $i++) {
+    #     $bi += (Power $a $i $deckSize) * $b
+    #     $bi = $bi % $deckSize
 
-        if ((($i + 1) % 1000) -eq 0) {
-            write-host "$(Get-Date) Done i '$($i + 1)'"
+    #     if ((($i + 1) % 1000) -eq 0) {
+    #         write-host "$(Get-Date) Done i '$($i + 1)'"
+    #     }
+    # }
+
+    # $a = Power $a $iterations $deckSize
+    # $position = $a * $position + $bi
+    # $position = $position % $deckSize
+
+    $cache = @{
+        1 = @{
+            a = $a
+            b = $b
         }
     }
-    $a = Power $a $iterations $deckSize
-    $position = $a * $position + $bi
-    $position = $position % $deckSize
+    $lastStep = $cache.1
+    for ([int64]$i = 2; $i -lt $iterations; $i *= 2) {
+        $currentStep = @{
+            a = ($lastStep.a * $lastStep.a) % $deckSize
+            b = ($lastStep.a * $lastStep.b + $lastStep.b) % $deckSize
+        }
+        $cache.$i = $currentStep
+        $lastStep = $currentStep
+    }
+
+    $iterationsToGo = $iterations
+    $cache.Keys | Sort-Object -Descending | ForEach-Object {
+        $step = $_
+        $cachedStep = $cache.$_
+        while ($iterationsToGo -ge $step) {
+            # Write-Host "To go: '$iterationsToGo', step: '$step'"
+            $position = $cachedStep.a * $position + $cachedStep.b
+            $position = $position % $deckSize
+            $iterationsToGo -= $step
+        }
+    }
 
     return $position
 }
@@ -289,4 +318,5 @@ function Get-ResultPart2 {
     $position
 
     # 18741272659228 - too low
+    # 71047285772808 - correct
 }
