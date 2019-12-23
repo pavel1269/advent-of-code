@@ -11,9 +11,17 @@ function Assert {
         Write-Error "Arrays have different length, '$($a.Count)' vs '$($b.Count)'" -ErrorAction "stop"
     }
 
-    for ($index = 0; $index -lt $a.Count; $index++) {
-        if ($a[$index] -ne $b[$index]) {
-            Write-Error "Differece at position '$index', '$($a[$index])' vs '$($b[$index])'" -ErrorAction "stop"
+    if ($a -is [hashtable]) {
+        for ($index = 0; $index -lt $a.Count; $index++) {
+            if ($a."$index" -ne $b[$index]) {
+                Write-Error "Differece at position '$index', '$($a[$index])' vs '$($b[$index])'" -ErrorAction "stop"
+            }
+        }
+    } else {
+        for ($index = 0; $index -lt $a.Count; $index++) {
+            if ($a[$index] -ne $b[$index]) {
+                Write-Error "Differece at position '$index', '$($a[$index])' vs '$($b[$index])'" -ErrorAction "stop"
+            }
         }
     }
 }

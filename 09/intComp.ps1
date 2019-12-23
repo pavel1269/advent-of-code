@@ -1,25 +1,54 @@
 
 $ErrorActionPreference = "Stop"
 
+function Load-IntCompProgram {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]
+        $Filename
+    )
+
+    $program = Get-Content $Filename
+    $OpCode = $program.Split(',') | ForEach-Object { [decimal]$_ }
+    $OpCode = ConvertTo-HashTable $OpCode
+    return $OpCode
+}
+
+function ConvertTo-HashTable {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [decimal[]]
+        $Array
+    )
+
+    $HashTable = @{}
+    for ([decimal]$i = 0; $i -lt $Array.Count; $i++) {
+        $HashTable."$i" = $Array[$i]
+    }
+
+    return $HashTable
+}
+
 function IntComp {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [int64[]]
-        $OpCodesArray,
+        $OpCodes,
 
-        [int64[]]
+        [decimal[]]
         $InputParams = @(),
         
-        [int64]
+        [decimal]
         $OpCodeIndex = 0
     )
 
     function Get-Op {
         [CmdletBinding()]
-        param([Hashtable]$OpCodes, [int64]$index, $mode)
+        param([Hashtable]$OpCodes, [decimal]$index, $mode)
 
-        $op = $OpCodes."$index"
+        [decimal]$op = $OpCodes."$index"
         if ($mode -eq 0) {
             $opVal = $OpCodes."$op"
         }
@@ -33,7 +62,7 @@ function IntComp {
             throw "Unsupported mode '$mode'"
         }
 
-        return [int64]$opVal
+        return [decimal]$opVal
     }
 
     function Get-OutOp {
@@ -43,7 +72,7 @@ function IntComp {
         if ($mode -eq 1) {
             throw "Input / output in immediate mode"
         }
-        $op = $OpCodes."$index"
+        [decimal]$op = $OpCodes."$index"
         if ($mode -eq 2) {
             $op += $relativeBase
         }
@@ -51,26 +80,14 @@ function IntComp {
         return [int64]$op
     }
 
-    function Get-OutOpCodes {
-        [CmdletBinding()]
-        param([Hashtable]$OpCodes)
-        
-        $MaxOpCode = $OpCodes.Keys | ForEach-Object { [int64]$_ } | Sort-Object -Descending | Select-Object -First 1
-        $ResOpCodes = New-Object "int64[]" ($MaxOpCode + 1)
-        $MaxOpCode = $OpCodes.Keys | ForEach-Object { $ResOpCodes[[int64]$_] = $OpCodes.$_ }
-
-        return $ResOpCodes
-    }
-
-    $OpCodes = @{}
-    for ([int64]$i = 0; $i -lt $OpCodesArray.Count; $i++) {
-        $OpCodes."$i" = $OpCodesArray[$i]
+    if ($OpCodes -is [Array]) {
+        $OpCodes = ConvertTo-HashTable $OpCodes
     }
 
     $inputParamIndex = 0
-    $outputs = @()
-    $relativeBase = 0
-    for ([int64]$index = 0; $index -lt $OpCodes.Count; $index += $operands) {
+    $outputs = New-Object "System.Collections.ArrayList"
+    [decimal]$relativeBase = 0
+    for ([decimal]$index = $OpCodeIndex; $index -lt $OpCodes.Count; $index += $operands) {
         $operands = 1
         $func = $OpCodes."$index"
 
@@ -81,7 +98,7 @@ function IntComp {
         $tmp = [Math]::Floor($tmp / 10)
         $modeOp3 = $tmp % 10
 
-        Write-Verbose "Instruction '$index': '$($func % 100)'('$func') (op1 mode: '$modeOp1', op2 mode: '$modeOp2', op3 mode: '$modeOp3')"
+        Write-Verbose "$(Get-Date) Instruction '$index': '$($func % 100)'('$func') (op1 mode: '$modeOp1', op2 mode: '$modeOp2', op3 mode: '$modeOp3')"
 
         switch ($func % 100) {
             1 {
@@ -103,9 +120,8 @@ function IntComp {
             3 {
                 if ($inputParamIndex -ge $InputParams.Count) {
                     Write-Verbose "[$input] = ?"
-                    $ResOpCodes = Get-OutOpCodes $OpCodes
                     return @{
-                        OpCodes = $ResOpCodes
+                        OpCodes = $OpCodes
                         OpCodeIndex = $index
                         Outputs = $outputs
                     }
@@ -152,10 +168,10 @@ function IntComp {
                 $op3 = Get-OutOp $OpCodes ($index + 3) $modeOp3
 
                 if ($op1Val -lt $op2Val) {
-                    $OpCodes."$op3" = [int64]1
+                    $OpCodes."$op3" = [decimal]1
                 }
                 else {
-                    $OpCodes."$op3" = [int64]0
+                    $OpCodes."$op3" = [decimal]0
                 }
                 Write-Verbose "[$op3] = '$($OpCodes."$op3")'"
             }
@@ -166,10 +182,10 @@ function IntComp {
                 $op3 = Get-OutOp $OpCodes ($index + 3) $modeOp3
 
                 if ($op1Val -eq $op2Val) {
-                    $OpCodes."$op3" = [int64]1
+                    $OpCodes."$op3" = [decimal]1
                 }
                 else {
-                    $OpCodes."$op3" = [int64]0
+                    $OpCodes."$op3" = [decimal]0
                 }
                 Write-Verbose "[$op3] = '$($OpCodes."$op3")'"
             }
@@ -181,10 +197,9 @@ function IntComp {
             }
             99 {
                 $operands = 1
-                $ResOpCodes = Get-OutOpCodes $OpCodes
                 
                 return @{
-                    OpCodes = $ResOpCodes
+                    OpCodes = $OpCodes
                     Outputs = $outputs
                 }
             }
