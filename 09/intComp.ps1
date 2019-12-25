@@ -41,7 +41,10 @@ function IntComp {
         $InputParams = @(),
         
         [decimal]
-        $OpCodeIndex = 0
+        $OpCodeIndex = 0,
+
+        [decimal]
+        $RelativeBase = 0
     )
 
     function Get-Op {
@@ -56,7 +59,7 @@ function IntComp {
             $opVal = $op
         }
         elseif ($mode -eq 2) {
-            $opVal = $OpCodes."$($op + $relativeBase)"
+            $opVal = $OpCodes."$($op + $RelativeBase)"
         }
         else {
             throw "Unsupported mode '$mode'"
@@ -86,7 +89,6 @@ function IntComp {
 
     $inputParamIndex = 0
     $outputs = New-Object "System.Collections.ArrayList"
-    [decimal]$relativeBase = 0
     for ([decimal]$index = $OpCodeIndex; $index -lt $OpCodes.Count; $index += $operands) {
         $operands = 1
         $func = $OpCodes."$index"
@@ -124,6 +126,7 @@ function IntComp {
                         OpCodes = $OpCodes
                         OpCodeIndex = $index
                         Outputs = $outputs
+                        RelativeBase = $RelativeBase
                     }
                 }
 
@@ -131,7 +134,7 @@ function IntComp {
                 $op = Get-OutOp $OpCodes ($index + 1) $modeOp1
                 $OpCodes."$op" = $InputParams[$inputParamIndex]
                 $inputParamIndex++
-                Write-Verbose "[$op] = '$InputParam'"
+                Write-Verbose "[$op] = '$($OpCodes."$op")'"
             }
             4 {
                 $operands = 2
@@ -192,8 +195,8 @@ function IntComp {
             9 {
                 $operands = 2
                 $op1Val = Get-Op $OpCodes ($index + 1) $modeOp1
-                $relativeBase += $op1Val
-                Write-Verbose "Relative base changed to '$relativeBase'"
+                $RelativeBase += $op1Val
+                Write-Verbose "Relative base changed to '$RelativeBase'"
             }
             99 {
                 $operands = 1
