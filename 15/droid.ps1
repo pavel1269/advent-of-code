@@ -185,7 +185,7 @@ function Get-AccessibleSurrounding {
 
     # north (1), south (2), west (3), and east (4)
     $paths = @()
-    $good = @(".", "O")
+    $good = @('.', 'O')
     if ($where.y -gt $state.min.y -and ($state.map."$($where.y - 1)"."$($where.x)") -in $good) {
         $paths += @{
             path = 1
@@ -427,4 +427,63 @@ function Get-Part1Result {
     #       #.#.##
     #       #...#
     #        ###
+}
+
+function Get-LongestPath {
+    [CmdletBinding()]
+    param($state, $from)
+
+    $queue = New-Object "System.Collections.Queue"
+    $visited = @("$($from.pos.x)x$($from.pos.y)")
+    @(Get-AccessibleSurrounding $state $from) | ForEach-Object {
+        $queue.Enqueue($_)
+    }
+
+    while ($queue.Count -gt 0) {
+        $act = $queue.Dequeue()
+        $visited += "$($act.pos.x)x$($act.pos.y)"
+
+        @(Get-AccessibleSurrounding $state $act.pos) | Where-Object { $visited -notcontains "$($_.pos.x)x$($_.pos.y)" } | ForEach-Object {
+            $_.path = "$($act.path)$($_.path)"
+            $queue.Enqueue($_)
+        }
+    }
+
+    return "$($act.path)"
+}
+
+function Get-Part2Result {
+    [CmdletBinding()]
+    param()
+
+    try {
+        $state = Init
+        Resolve-Map $state
+        Write-Host "Map Explored"
+        Out-Map $state
+        # return $state
+        
+        for ($rowIndex = $state.min.y; $rowIndex -le $state.max.y; $rowIndex++) {
+            for ($columnIndex = $state.min.x; $columnIndex -le $state.max.x; $columnIndex++) {
+                if ($state.map."$rowIndex"."$columnIndex" -eq 'O') {
+                    $start = @{
+                        x = $columnIndex
+                        y = $rowIndex
+                    }
+                }
+            }
+        }
+        if (-not $start) {
+            throw "Start not found"
+        }
+
+        $path = Get-LongestPath $state $start
+        Write-Host "Path: '$($path.length)' '$path'"
+    }
+    catch {
+        "$($_ | Out-String)`n$($_.ScriptStackTrace | Out-String)" | Write-Host
+    }
+
+    # 382 - correct
+    # 390 - too high. Curiously, it's the right answer for someone else; you might be logged in to the wrong account or just unlucky
 }
