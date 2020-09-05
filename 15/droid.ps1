@@ -117,72 +117,12 @@ function Resolve-Map {
         return $unownSurrounding
     }
     
-    function Get-AccessibleSurrounding {
-        [CmdletBinding()]
-        param($state, $where)
-
-        if (-not ($state.map."$($where.y)")) {
-            Out-Map $state
-            throw "Testing unown area Y"
-        }
-        if (-not ($state.map."$($where.y)"."$($where.x)")) {
-            Out-Map $state
-            throw "Testing unown area XY"
-        }
-
-        # north (1), south (2), west (3), and east (4)
-        $paths = @()
-        
-        if ($where.y -gt $state.min.y -and ($state.map."$($where.y - 1)"."$($where.x)") -eq ".") {
-            $paths += @{
-                path = 1
-                pos = @{
-                    y = $where.y - 1
-                    x = $where.x
-                }
-            }
-        }
-
-        if ($where.y -lt $state.max.y -and ($state.map."$($where.y + 1)"."$($where.x)") -eq ".") {
-            $paths += @{
-                path = 2
-                pos = @{
-                    y = $where.y + 1
-                    x = $where.x
-                }
-            }
-        }
-
-        if ($where.x -gt $state.min.x -and ($state.map."$($where.y)"."$($where.x - 1)") -eq ".") {
-            $paths += @{
-                path = 3
-                pos = @{
-                    y = $where.y
-                    x = $where.x - 1
-                }
-            }
-        }
-
-        if ($where.x -lt $state.max.x -and ($state.map."$($where.y)"."$($where.x + 1)") -eq ".") {
-            $paths += @{
-                path = 4
-                pos = @{
-                    y = $where.y
-                    x = $where.x + 1
-                }
-            }
-        }
-        
-        return $paths
-    }
-
     function Get-PathToNearestUnknownSurrounding {
         [CmdletBinding()]
         param($state)
 
         $queue = New-Object "System.Collections.Queue"
         $visited = @("$($state.pos.x)x$($state.pos.y)")
-        Write-Host "Searching from $visited"
         @(Get-AccessibleSurrounding $state $state.pos) | ForEach-Object {
             $queue.Enqueue($_)
         }
@@ -191,6 +131,9 @@ function Resolve-Map {
             $act = $queue.Dequeue()
             $visited += "$($act.pos.x)x$($act.pos.y)"
 
+            if ($state.map."$($act.pos.y)"."$($act.pos.x)" -eq 'O') {
+                return "$($act.path)"
+            }
             $paths = @(Get-UnknownSurrounding $state $act.pos)
             if ($paths.Count -gt 0) {
                 return "$($act.path)"
@@ -203,6 +146,10 @@ function Resolve-Map {
     }
 
     while ($true) {
+        if ($state.map."$($state.pos.y)"."$($act.state.x)" -eq 'O') {
+            return
+        }
+
         while (($paths = @(Get-UnknownSurrounding $state $state.pos)).Count -gt 0) {
             $state.compInputs.InputParams = @([int]($paths[0]))
             Step-InMap $state
@@ -221,6 +168,65 @@ function Resolve-Map {
             return
         }
     }
+}
+
+function Get-AccessibleSurrounding {
+    [CmdletBinding()]
+    param($state, $where)
+
+    if (-not ($state.map."$($where.y)")) {
+        Out-Map $state
+        throw "Testing unown area Y"
+    }
+    if (-not ($state.map."$($where.y)"."$($where.x)")) {
+        Out-Map $state
+        throw "Testing unown area XY"
+    }
+
+    # north (1), south (2), west (3), and east (4)
+    $paths = @()
+    $good = @(".", "O")
+    if ($where.y -gt $state.min.y -and ($state.map."$($where.y - 1)"."$($where.x)") -in $good) {
+        $paths += @{
+            path = 1
+            pos = @{
+                y = $where.y - 1
+                x = $where.x
+            }
+        }
+    }
+
+    if ($where.y -lt $state.max.y -and ($state.map."$($where.y + 1)"."$($where.x)") -in $good) {
+        $paths += @{
+            path = 2
+            pos = @{
+                y = $where.y + 1
+                x = $where.x
+            }
+        }
+    }
+
+    if ($where.x -gt $state.min.x -and ($state.map."$($where.y)"."$($where.x - 1)") -in $good) {
+        $paths += @{
+            path = 3
+            pos = @{
+                y = $where.y
+                x = $where.x - 1
+            }
+        }
+    }
+
+    if ($where.x -lt $state.max.x -and ($state.map."$($where.y)"."$($where.x + 1)") -in $good) {
+        $paths += @{
+            path = 4
+            pos = @{
+                y = $where.y
+                x = $where.x + 1
+            }
+        }
+    }
+    
+    return $paths
 }
 
 function Set-NewState {
@@ -301,6 +307,32 @@ function Out-Map {
     }
 }
 
+function Get-PathToOxygen {
+    [CmdletBinding()]
+    param($state, $from)
+
+    $queue = New-Object "System.Collections.Queue"
+    $visited = @("$($from.pos.x)x$($from.pos.y)")
+    @(Get-AccessibleSurrounding $state $from) | ForEach-Object {
+        $queue.Enqueue($_)
+    }
+
+    while ($queue.Count -gt 0) {
+        $act = $queue.Dequeue()
+        $visited += "$($act.pos.x)x$($act.pos.y)"
+
+        if ($state.map."$($act.pos.y)"."$($act.pos.x)" -eq 'O') {
+            return "$($act.path)"
+        }
+        @(Get-AccessibleSurrounding $state $act.pos) | Where-Object { $visited -notcontains "$($_.pos.x)x$($_.pos.y)" } | ForEach-Object {
+            $_.path = "$($act.path)$($_.path)"
+            $queue.Enqueue($_)
+        }
+    }
+
+    throw "not found"
+}
+
 function Get-Part1Result {
     [CmdletBinding()]
     param()
@@ -312,11 +344,15 @@ function Get-Part1Result {
         Resolve-Map $state
         Write-Host "Map Explored"
         Out-Map $state
-        
+        # return $state
+        $path = Get-PathToOxygen $state (@{ x = 0; y = 0 })
+        Write-Host "Path: '$($path.length)' '$path'"
     }
     catch {
         "$($_ | Out-String)`n$($_.ScriptStackTrace | Out-String)" | Write-Host
     }
+
+    # 248 - correct
 
     #  ####### ### ##### ######### ########### 
     # #.......#...#.....#.........#...........#
