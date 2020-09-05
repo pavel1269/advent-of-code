@@ -20,6 +20,7 @@ function Manual-RobotControl {
 
         Step-InMap $state
         Set-NewState $state
+        
         Out-Map $state
     }
 }
@@ -63,8 +64,8 @@ function Step-InMap {
     param($state)
     
     $state.compInputs.Remove("Outputs")
-    $input = $state.compInputs
-    $res = IntComp @input
+    $inputs = $state.compInputs
+    $res = IntComp @inputs
     $res.InputParams = $state.compInputs.InputParams
     $state.compInputs = $res
 }
@@ -73,17 +74,17 @@ function Resolve-Map {
     [CmdletBinding()]
     param($state)
 
-    function Test-SurroundingKnown {
+    function Get-UnknownSurrounding {
         [CmdletBinding()]
         param($state, $where)
 
         if (-not ($state.map."$($where.y)")) {
             Out-Map $state
-            throw "Testing unown area Y"
+            throw "Testing unown area Y '$($where.y)'"
         }
         if (-not ($state.map."$($where.y)"."$($where.x)")) {
             Out-Map $state
-            throw "Testing unown area XY"
+            throw "Testing unown area X '$($where.x)' Y '$($where.y)'"
         }
 
         # north (1), south (2), west (3), and east (4)
@@ -116,11 +117,109 @@ function Resolve-Map {
         return $unownSurrounding
     }
     
-    while (($paths = @(Test-SurroundingKnown $state $state.pos)).Count -gt 0) {
+    function Get-AccessibleSurrounding {
+        [CmdletBinding()]
+        param($state, $where)
+
+        if (-not ($state.map."$($where.y)")) {
+            Out-Map $state
+            throw "Testing unown area Y"
+        }
+        if (-not ($state.map."$($where.y)"."$($where.x)")) {
+            Out-Map $state
+            throw "Testing unown area XY"
+        }
+
+        # north (1), south (2), west (3), and east (4)
+        $paths = @()
         
-        $state.compInputs.InputParams = @([int]($paths[0]))
-        Step-InMap $state
-        Set-NewState $state
+        if ($where.y -gt $state.min.y -and ($state.map."$($where.y - 1)"."$($where.x)") -eq ".") {
+            $paths += @{
+                path = 1
+                pos = @{
+                    y = $where.y - 1
+                    x = $where.x
+                }
+            }
+        }
+
+        if ($where.y -lt $state.max.y -and ($state.map."$($where.y + 1)"."$($where.x)") -eq ".") {
+            $paths += @{
+                path = 2
+                pos = @{
+                    y = $where.y + 1
+                    x = $where.x
+                }
+            }
+        }
+
+        if ($where.x -gt $state.min.x -and ($state.map."$($where.y)"."$($where.x - 1)") -eq ".") {
+            $paths += @{
+                path = 3
+                pos = @{
+                    y = $where.y
+                    x = $where.x - 1
+                }
+            }
+        }
+
+        if ($where.x -lt $state.max.x -and ($state.map."$($where.y)"."$($where.x + 1)") -eq ".") {
+            $paths += @{
+                path = 4
+                pos = @{
+                    y = $where.y
+                    x = $where.x + 1
+                }
+            }
+        }
+        
+        return $paths
+    }
+
+    function Get-PathToNearestUnknownSurrounding {
+        [CmdletBinding()]
+        param($state)
+
+        $queue = New-Object "System.Collections.Queue"
+        $visited = @("$($state.pos.x)x$($state.pos.y)")
+        Write-Host "Searching from $visited"
+        @(Get-AccessibleSurrounding $state $state.pos) | ForEach-Object {
+            $queue.Enqueue($_)
+        }
+
+        while ($queue.Count -gt 0) {
+            $act = $queue.Dequeue()
+            $visited += "$($act.pos.x)x$($act.pos.y)"
+
+            $paths = @(Get-UnknownSurrounding $state $act.pos)
+            if ($paths.Count -gt 0) {
+                return "$($act.path)"
+            }
+            @(Get-AccessibleSurrounding $state $act.pos) | Where-Object { $visited -notcontains "$($_.pos.x)x$($_.pos.y)" } | ForEach-Object {
+                $_.path = "$($act.path)$($_.path)"
+                $queue.Enqueue($_)
+            }
+        }
+    }
+
+    while ($true) {
+        while (($paths = @(Get-UnknownSurrounding $state $state.pos)).Count -gt 0) {
+            $state.compInputs.InputParams = @([int]($paths[0]))
+            Step-InMap $state
+            Set-NewState $state
+        }
+    
+        $res = Get-PathToNearestUnknownSurrounding $state
+        if ($res) {
+            for ($index = 0; $index -lt $res.length; $index++) {
+                $state.compInputs.InputParams = @([int]("$($res[$index])"))
+                Step-InMap $state
+                Set-NewState $state
+            }
+        }
+        else {
+            return
+        }
     }
 }
 
@@ -207,11 +306,60 @@ function Get-Part1Result {
     param()
 
     try {
-        Manual-RobotControl
+        # Manual-RobotControl
+        
+        $state = Init
+        Resolve-Map $state
+        Write-Host "Map Explored"
+        Out-Map $state
+        
     }
     catch {
         "$($_ | Out-String)`n$($_.ScriptStackTrace | Out-String)" | Write-Host
     }
+
+    #  ####### ### ##### ######### ########### 
+    # #.......#...#.....#.........#...........#
+    # #.###.###.#.#.###.#.#####.#.###########.#
+    # #.#...#...#...#.#.......#.#.#...#.......#
+    # #.#.###.#######.#########.#.#.#.#.#####.#
+    # #.#.#...#...#.......#.....#...#.#.#...#.#
+    # #.#.#.###.#.#.#.#####.#.#######.#.#.#.#.#
+    # #.#.#...#.#...#.....#.#.#...#.....#.#...#
+    # #.#.###.###########.#.###.#.#######.#### 
+    # #O#...#.#.........#.#.....#...#.#...#...#
+    #  ##.#.#.#.#######.#.#########.#.#.###.## 
+    # #...#.#...#.....#.#.....#.....#.#.#.....#
+    # #.###.#####.###.#.###.###.#####.#.#####.#
+    # #...#.#.......#.#...#...#.#.....#.#.....#
+    #  ##.#.#.#####.#####.###.#.###.###.#.#### 
+    # #...#.#.#...#...........#...#.....#.....#
+    # #.#####.#.#############.###.###.###.###.#
+    # #.........#...#.....#.....#...#.#.....#.#
+    #  ######.###.#.#.###.#########.#.#####.#.#
+    # #.....#.#...#...#.............#...#...#.#
+    # #.###.###.#####.#################.#####.#
+    # #.#.#.#...#...#.#.....#.....#...#.#.....#
+    # #.#.#.#.#.#.#.###.#####.###.#.#.#.#.#### 
+    # #.#.....#.#D#.....#.....#.#.#.#...#.....#
+    # #.#######.#.#######.#####.#.#.#####.###.#
+    # #.......#.#.#...#.....#.....#.#...#...#.#
+    #  ######.###.#.###.###.#######.#.#.#####.#
+    # #.....#.#...#.#...#.#...#.....#.#.....#.#
+    # #.#.###.#.###.#.###.###.#.#####.#####.#.#
+    # #.#...#...#...........#.#.......#.#...#.#
+    # #.###.#####.###########.#########.#.###.#
+    # #...#.....#...#.#.....#.......#.....#...#
+    #  ##.###.#.###.#.#.###.#.#######.#####.##
+    # #.#.#...#...#...#...#...#.....#...#.....#
+    # #.#.#.#########.###.###.#.###.###.#####.#
+    # #...#.........#.#...#...#.#.#.....#...#.#
+    # #.## ########.#.#.###.###.#.#######.#.#.#
+    # #...#.......#...#...#...#...#...#...#.#.#
+    #  ##.###.###.#######.#######.#.#.#.###.#.#
+    # #.......#.........#...........#...#.....#
+    #  ####### ######### ########### ### #####
+
     # #   #   # # #   # #     #
     # #.....  #...#.....#.......
     #  . # . # . . .   . .     .
