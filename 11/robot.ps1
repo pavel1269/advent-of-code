@@ -29,16 +29,16 @@ function Out-Map {
     write-host ""
 }
 
-function Get-Part1Result {
+function Run-Robot {
     [CmdletBinding()]
-    param()
-    
+    param([int]$StartColor)
+
     $OpCode = Load-IntCompProgram "./program.txt"
     
     $CompInputs = @{
         OpCodeIndex = 0
         OpCodes     = $OpCode
-        InputParams = @(0)
+        InputParams = @($StartColor)
     }
     $map = @{}
     $direction = 0
@@ -70,7 +70,6 @@ function Get-Part1Result {
         ,@(0, 0)
     )
 
-    $paints = 0
     do {
         $res = IntComp @CompInputs
 
@@ -86,12 +85,10 @@ function Get-Part1Result {
             if (-not $map[$pos.y]) { $map[$pos.y] = @{} }
             if (-not $map[$pos.y][$pos.x]) {
                 $map[$pos.y][$pos.x] = $true
-                $paints++
             }
         } elseif ($res.Outputs[0] -eq 0) {
             if ($map[$pos.y] -and $map[$pos.y][$pos.x]) {
                 $map[$pos.y][$pos.x] = $false
-                $paints++
             }
         } else { throw "unown paint '$($res.Outputs[0])'" }
 
@@ -129,6 +126,15 @@ function Get-Part1Result {
 
     Out-Map $map $pos $direction $min $max
 
+    return $map
+}
+
+function Get-Part1Result {
+    [CmdletBinding()]
+    param()
+
+    $map = Run-Robot
+    
     $count = 0
     for ($rowIndex = $min.y; $rowIndex -le $max.y; $rowIndex++) {
         for ($columnIndex = $min.x; $columnIndex -le $max.x; $columnIndex++) {
@@ -139,9 +145,22 @@ function Get-Part1Result {
     }
     write-host "Result: $count"
 
-    write-host "Result: $paints"
-
     # 1307 - too low
     # 2339 - correct
     # 10351 - too high
+}
+
+function Get-Part2Result {
+    [CmdletBinding()]
+    param()
+
+    Run-Robot 1 | Out-Null
+    
+    # .###...##..#..#.####.###..#....###..###....
+    # .#..#.#..#.#..#.#....#..#.#....#..#.#..#...
+    # .#..#.#....#..#.###..#..#.#....#..#.#..#...
+    # .###..#.##.#..#.#....###..#....###..###....
+    # .#....#..#.#..#.#....#....#....#....#.#..1.
+    # .#.....###..##..####.#....####.#....#..#...
+    # PGUEPLPR - correct
 }
