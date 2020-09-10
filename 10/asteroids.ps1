@@ -180,7 +180,6 @@ function Get-Part1Result {
     [CmdletBinding()]
     param()
 
-    
     $mapString = ".#....#.###.........#..##.###.#.....##...
 ...........##.......#.#...#...#..#....#..
 ...#....##..##.......#..........###..#...
@@ -226,5 +225,170 @@ function Get-Part1Result {
     $res = Get-BestVisibility $mapString
     Write-Host "Best: '$($res.best)'"
 
-    # 340 - correct
+    # 340 - correct (28, 29)
+}
+
+function Get-Angle {
+    [CmdletBinding()]
+    param([int]$x, [int]$y, [int]$x2, [int]$y2)
+
+    Write-Verbose "Angle from [$x,$y] to [$x2,$y2]?"
+
+    $distanceY = [Math]::Abs($x - $x2)
+    $distanceX = [Math]::Abs($y - $y2)
+
+    # up = 0
+    # right = pi / 2
+    if ($x -eq $x2) {
+        if ($y -eq $y2) {
+            throw "wtf"
+        } elseif ($y -gt $y2) {
+            return 0
+        } else {
+            return [Math]::PI
+        }
+    } elseif ($y -eq $y2) {
+        if ($x -gt $x2) {
+            return [Math]::PI * 1.5
+        } else {
+            return [Math]::PI / 2
+        }
+    } elseif ($x -lt $x2 -and $y -gt $y2) {
+        Write-Verbose "quadrant 1"
+        return [Math]::Atan($distanceY / $distanceX)
+    } elseif ($x -lt $x2 -and $y -lt $y2) {
+        Write-Verbose "quadrant 2"
+        return [Math]::Atan($distanceX / $distanceY) + [Math]::PI / 2
+    } elseif ($x -gt $x2 -and $y -lt $y2) {
+        Write-Verbose "quadrant 3"
+        return [Math]::Atan($distanceY / $distanceX) + [Math]::PI
+    } elseif ($x -gt $x2 -and $y -gt $y2) {
+        Write-Verbose "quadrant 4"
+        return [Math]::Atan($distanceX / $distanceY) + [Math]::PI * 1.5
+    } else {
+        throw "wtf 2"
+    }
+}
+
+function Get-Asteroids {
+    [CmdletBinding()]
+    param([string[]]$map, [int]$sx, [int]$sy)
+
+    $width = $map[0].Length
+    $asteroids = New-Object System.Collections.Generic.List[System.Object]
+    for ($y = 0; $y -lt $map.Count; $y++) {
+        for ($x = 0; $x -lt $width; $x++) {
+            if ($map[$y][$x] -eq '#') {
+                $angle = Get-Angle $sx $sy $x $y
+                $asteroids.Add(@{
+                    x = $x
+                    y = $y
+                    angle = $angle
+                })
+            }
+        }
+    }
+
+    return $asteroids
+}
+
+function Update-AsteroidsVisibility {
+    [CmdletBinding()]
+    param([string[]]$map, [System.Collections.Generic.List[System.Object]]$asteroids, [int]$x, [int]$y)
+
+    $asteroids | ForEach-Object {
+        if (-not $_.visible) {
+            $_.visible = Test-CanSee $map $x $y $_.x $_.y
+        }
+    }
+}
+
+function ShootDown-Asteroids {
+    [CmdletBinding()]
+    param([string]$mapString, [int]$x, [int]$y)
+
+    $map = $mapString.Split()
+    $map[$y] = $map[$y].Remove($x, 1).Insert($x, 'X')
+    $asteroids = [System.Collections.Generic.List[System.Object]](Get-Asteroids $map $x $y)
+    
+    $angle = -1
+    $shot = 0
+
+    while ($asteroids.Count -gt 0) {
+        Update-AsteroidsVisibility $map $asteroids $x $y
+        $visibleAsteroidAngles = $asteroids | Where-Object { $_.visible } | ForEach-Object { $_.angle } | Sort-Object
+        $targetAngle = $visibleAsteroidAngles | Where-Object { $angle -lt $_ } | Select-Object -first 1
+        if ($visibleAsteroidAngles.Count -eq 0) {
+            throw "nothing to shoot at"
+        } elseif ($targetAngle.Count -eq 0) {
+            $targetAngle = $visibleAsteroidAngles | Select-Object -first 1
+        }
+        $target = $asteroids | Where-Object { $_.visible -and $_.angle -eq $targetAngle }
+    
+        $asteroids.Remove($target) | Out-Null
+        $map[$target.y] = $map[$target.y].Remove($target.x, 1).Insert($target.x, '.')
+        $angle = $target.angle
+        $shot++
+    
+        #Write-Host "Target '$shot' was at [$($target.x),$($target.y)], current angle: '$angle'"
+        Write-Output @{
+            x = $target.x
+            y = $target.y
+        }
+    }
+}
+
+function Get-Part2Result {
+    [CmdletBinding()]
+    param()
+
+    $mapString = ".#....#.###.........#..##.###.#.....##...
+...........##.......#.#...#...#..#....#..
+...#....##..##.......#..........###..#...
+....#....####......#..#.#........#.......
+...............##..#....#...##..#...#..#.
+..#....#....#..#.....#.#......#..#...#...
+.....#.#....#.#...##.........#...#.......
+#...##.#.#...#.......#....#........#.....
+....##........#....#..........#.......#..
+..##..........##.....#....#.........#....
+...#..##......#..#.#.#...#...............
+..#.##.........#...#.#.....#........#....
+#.#.#.#......#.#...##...#.........##....#
+.#....#..#.....#.#......##.##...#.......#
+..#..##.....#..#.........#...##.....#..#.
+##.#...#.#.#.#.#.#.........#..#...#.##...
+.#.....#......##..#.#..#....#....#####...
+........#...##...#.....#.......#....#.#.#
+#......#..#..#.#.#....##..#......###.....
+............#..#.#.#....#.....##..#......
+...#.#.....#..#.......#..#.#............#
+.#.#.....#..##.....#..#..............#...
+.#.#....##.....#......##..#...#......#...
+.......#..........#.###....#.#...##.#....
+.....##.#..#.....#.#.#......#...##..#.#..
+.#....#...#.#.#.......##.#.........#.#...
+##.........#............#.#......#....#..
+.#......#.............#.#......#.........
+.......#...##........#...##......#....#..
+#..#.....#.#...##.#.#......##...#.#..#...
+#....##...#.#........#..........##.......
+..#.#.....#.....###.#..#.........#......#
+......##.#...#.#..#..#.##..............#.
+.......##.#..#.#.............#..#.#......
+...#....##.##..#..#..#.....#...##.#......
+#....#..#.#....#...###...#.#.......#.....
+.#..#...#......##.#..#..#........#....#..
+..#.##.#...#......###.....#.#........##..
+#.##.###.........#...##.....#..#....#.#..
+..........#...#..##..#..##....#.........#
+..#..#....###..........##..#...#...#..#.."
+
+    $x = 28
+    $y = 29
+    $shots = ShootDown-Asteroids $mapString $x $y
+
+    Write-Host "Result: $($shots[199].x * 100 + $shots[199].y)"
+
+    # 2628 - correct
 }
