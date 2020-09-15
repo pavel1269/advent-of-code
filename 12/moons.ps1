@@ -113,3 +113,83 @@ function Get-Part1Result {
     # 6065 - too low
     # 9999 - correct
 }
+
+function Test-KineticVectorEnergyZero {
+    [CmdletBinding()]
+    param([Hashtable[]]$velocity, [string]$vector)
+
+    $count = $velocity.Count
+    for ($index = 0; $index -lt $count; $index++) {
+        if ($velocity[$index]."$vector" -ne 0) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Get-Part2Result {
+    [CmdletBinding()]
+    param()
+
+    <#
+0 0 0 0 - -1 2 1 1
+3 -3 0 0 - 2 -1 1 1
+0 0 0 0 - 2 -1 1 1
+-3 3 0 0 - -1 2 1 1
+0 0 0 0 - -1 2 1 1
+
+0 0 0 0 - -1 2 2 1
+3 -2 -2 1 - 2 0 0 2
+1 0 0 -1 - 3 0 0 1
+-2 2 2 -2 - 1 2 2 -1
+-1 0 0 1 - 0 2 2 0
+1 -2 -2 3 - 1 0 0 3
+0 0 0 0 - 1 0 0 3
+-1 2 2 -3 - 0 2 2 0
+1 0 0 -1 - 1 0 0 -1
+    #>
+    
+    $moons = @(
+        @{ x = 14; y = 9; z = 14 }
+        @{ x = 9; y = 11; z = 6 }
+        @{ x = -6; y = 14; z = -4 }
+        @{ x = 4; y = -4; z = -3 }
+    )
+    $velocity = @(
+        @{ x = 0; y = 0; z = 0 }
+        @{ x = 0; y = 0; z = 0 }
+        @{ x = 0; y = 0; z = 0 }
+        @{ x = 0; y = 0; z = 0 }
+    )
+
+    $cycleX = $null
+    $cycleY = $null
+    $cycleZ = $null
+    $step = 0
+    while ((-not $cycleX) -or (-not $cycleY) -or (-not $cycleZ)) {
+        $step++
+        Simulate-Step $moons $velocity
+
+        if (-not $cycleX) {
+            if (Test-KineticVectorEnergyZero $velocity "x") {
+                $cycleX = $step * 2
+            }
+        }
+        if (-not $cycleY) {
+            if (Test-KineticVectorEnergyZero $velocity "y") {
+                $cycleY = $step * 2
+            }
+        }
+        if (-not $cycleZ) {
+            if (Test-KineticVectorEnergyZero $velocity "z") {
+                $cycleZ = $step * 2
+            }
+        }
+    }
+
+    Write-Host "LCM($cycleX, $cycleY, $cycleZ) = ?"
+
+    # https://www.calculatorsoup.com/calculators/math/lcm.php
+    # LCM(161428, 231614, 60424) = 282399002133976 - correct
+}
