@@ -50,6 +50,28 @@ function Parse-Map {
         }
     }
 
+    Write-Verbose "$(Get-Date -DisplayHint Time) Map parsed"
+    return $state
+}
+
+function Parse-Map4Way {
+    [CmdletBinding()]
+    param([string]$stringMap)
+
+    $state = Parse-Map $stringMap
+    $pos = $state.position
+    $state.map[$pos.y - 1] = $state.map[$pos.y - 1].Remove($pos.x, 1).Insert($pos.x, "#")
+    $state.map[$pos.y] = $state.map[$pos.y].Remove($pos.x - 1, 3).Insert($pos.x - 1, "###")
+    $state.map[$pos.y + 1] = $state.map[$pos.y + 1].Remove($pos.x, 1).Insert($pos.x, "#")
+
+    $state.position = @(
+        @{ x = $pos.x - 1; y = $pos.y - 1 }
+        @{ x = $pos.x + 1; y = $pos.y - 1 }
+        @{ x = $pos.x - 1; y = $pos.y + 1 }
+        @{ x = $pos.x + 1; y = $pos.y + 1 }
+    )
+    
+    Write-Verbose "$(Get-Date -DisplayHint Time) Map for 4 robots parsed"
     return $state
 }
 
@@ -109,69 +131,69 @@ function Get-AccessibleSurrounding {
     return $paths
 }
 
-function Get-NextCollactables {
-    [CmdletBinding()]
-    param([HashTable]$state, [Hashtable]$position, [string[]]$keys)
+# function Get-NextCollactables {
+#     [CmdletBinding()]
+#     param([HashTable]$state, [Hashtable]$position, [string[]]$keys)
 
-    $queue = New-Object "System.Collections.Queue"
-    $visited = New-Object "System.Collections.ArrayList"
-    $queue.Enqueue(@{
-        pos = $position
-        distance = 0
-    })
-    $keyResult = New-Object "System.Collections.ArrayList"
-    while ($queue.Count -gt 0) {
-        $act = $queue.Dequeue()
+#     $queue = New-Object "System.Collections.Queue"
+#     $visited = New-Object "System.Collections.ArrayList"
+#     $queue.Enqueue(@{
+#         pos = $position
+#         distance = 0
+#     })
+#     $keyResult = New-Object "System.Collections.ArrayList"
+#     while ($queue.Count -gt 0) {
+#         $act = $queue.Dequeue()
 
-        # Write-Verbose "Looking at '$($act.pos.x)x$($act.pos.y)', distance: '$($act.distance)'"
-        $visited += "$($act.pos.x)x$($act.pos.y)"
-        $field = [char]($state.map[$act.pos.y][$act.pos.x])
-        if ($field -ge [char]'a' -and $field -le [char]'z' -and $field -notin $keys) {
-            $keyResult += @{
-                distance = $act.distance
-                pos = $act.pos
-                key = $field
-            }
-        } elseif ($field -in $keys -or $field -in @('@', '.')) {
-            @(Get-AccessibleSurrounding $state $act.pos).GetEnumerator().Where({
-                $visited -notcontains "$($_.pos.x)x$($_.pos.y)"
-            }).ForEach({
-                $queue.Enqueue(@{
-                    pos = $_.pos
-                    distance = $act.distance + 1
-                })
-            })
-        }
-    }
+#         # Write-Verbose "Looking at '$($act.pos.x)x$($act.pos.y)', distance: '$($act.distance)'"
+#         $visited += "$($act.pos.x)x$($act.pos.y)"
+#         $field = [char]($state.map[$act.pos.y][$act.pos.x])
+#         if ($field -ge [char]'a' -and $field -le [char]'z' -and $field -notin $keys) {
+#             $keyResult += @{
+#                 distance = $act.distance
+#                 pos = $act.pos
+#                 key = $field
+#             }
+#         } elseif ($field -in $keys -or $field -in @('@', '.')) {
+#             @(Get-AccessibleSurrounding $state $act.pos).GetEnumerator().Where({
+#                 $visited -notcontains "$($_.pos.x)x$($_.pos.y)"
+#             }).ForEach({
+#                 $queue.Enqueue(@{
+#                     pos = $_.pos
+#                     distance = $act.distance + 1
+#                 })
+#             })
+#         }
+#     }
 
-    return $keyResult
-}
+#     return $keyResult
+# }
 
-function Collect-AllKeysStepsRec {
-    [CmdletBinding()]
-    param([Hashtable]$state, [Hashtable]$position, [string[]]$keys, [int]$distance)
+# function Collect-AllKeysStepsRec {
+#     [CmdletBinding()]
+#     param([Hashtable]$state, [Hashtable]$position, [string[]]$keys, [int]$distance)
 
-    $res = New-Object "System.Collections.ArrayList"
-    @(Get-NextCollactables $state $position $keys) | ForEach-Object {
-        $act = $_
-        $newKeys = (New-Object "System.Collections.ArrayList") + $keys + $act.key
-        $newDistance = $act.Distance + $distance
-        Write-Verbose "Can get '$($act.key)', '$($newKeys.Count)' keys, distance: '$newDistance'"
-        if ($newKeys.Count -eq $state.keys.Count) {
-            Write-Verbose "all keys now"
-            $res += @{
-                keys = $newKeys
-                distance = $newDistance
-            }
-        } else {
-            Write-Verbose "going for rest of the keys now"
-            $res += Collect-AllKeysStepsRec $state $act.pos $newKeys $newDistance
-            Write-Verbose "back"
-        }
-    }
+#     $res = New-Object "System.Collections.ArrayList"
+#     @(Get-NextCollactables $state $position $keys) | ForEach-Object {
+#         $act = $_
+#         $newKeys = (New-Object "System.Collections.ArrayList") + $keys + $act.key
+#         $newDistance = $act.Distance + $distance
+#         Write-Verbose "Can get '$($act.key)', '$($newKeys.Count)' keys, distance: '$newDistance'"
+#         if ($newKeys.Count -eq $state.keys.Count) {
+#             Write-Verbose "all keys now"
+#             $res += @{
+#                 keys = $newKeys
+#                 distance = $newDistance
+#             }
+#         } else {
+#             Write-Verbose "going for rest of the keys now"
+#             $res += Collect-AllKeysStepsRec $state $act.pos $newKeys $newDistance
+#             Write-Verbose "back"
+#         }
+#     }
 
-    return $res
-}
+#     return $res
+# }
 
 function Get-AllCollactables {
     [CmdletBinding()]
@@ -200,9 +222,9 @@ function Get-AllCollactables {
             }
             $walkable = $true
 
-            if (-not ($keyResult | Where-Object {
+            if (-not ($keyResult.Where({
                 [string]::Join("", ($_.keys | Sort-Object)) -eq [string]::Join("", (@($act.keys) | Sort-Object))
-            })) {
+            }))) {
                 [void]$keyResult.Add(@{
                     distance = $act.distance
                     pos = $act.pos
@@ -228,7 +250,7 @@ function Get-AllCollactables {
         [void]$visited[$key].Add("$($act.pos.x)x$($act.pos.y)")
 
         if ($walkable) {
-            @(Get-AccessibleSurrounding $state $act.pos) | Where-Object {
+            @(Get-AccessibleSurrounding $state $act.pos).Where({
                 $actPosKey = "$($_.pos.x)x$($_.pos.y)"
                 $res = $visited[""] -notcontains $actPosKey
 
@@ -238,7 +260,7 @@ function Get-AllCollactables {
 
                 $iter = @()
                 $res = $true
-                $act.Doors | ForEach-Object {
+                $act.Doors.ForEach({
                     if ($res) {
                         $iter += $_
                         $iterKey = [string]::Join("", ($iter | Sort-Object))
@@ -247,106 +269,157 @@ function Get-AllCollactables {
                             $res = $false
                         }
                     }
-                }
+                })
                 
                 Write-Verbose "$res"
                 return $res
-            } | ForEach-Object {
+            }).ForEach({
                 $queue.Enqueue(@{
                     pos = $_.pos
                     distance = $act.distance + 1
                     keys = @($act.keys)
                     doors = @($act.doors)
                 })
-            }
+            })
         }
     }
 
     return $keyResult
 }
 
-function Collect-AllKeysStepsRec2 {
+# function Collect-AllKeysStepsRec2 {
+#     [CmdletBinding()]
+#     param([Hashtable]$state, [Hashtable]$position, [Hashtable]$paths, [string[]]$keys, [int]$distance, [System.Collections.ArrayList]$best)
+
+#     $pos = "$($position.x)x$($position.y)"
+#     $viablePaths = @($paths[$pos] | Where-Object {
+#         # Not blocked
+#         $path = $_
+#         $plausible = -not (($path.doors | Where-Object { $_ -notin $keys } | Select-Object -First 1).Count -gt 0)
+#         return $plausible
+#     } | Where-Object {
+#         # Can actually get a new key
+#         $path = $_
+#         $plausible = ($path.keys | Where-Object {
+#             $_ -notin $keys
+#         } | Select-Object -First 1).Count -gt 0
+#         return $plausible
+#     } | Sort-Object {
+#         $_.Distance
+#     })
+
+#     $totalKeys = $state.keys.Count
+#     for ($index = 0; $index -lt $viablePaths.Count; $index++) {
+#         $path = $viablePaths[$index]
+
+#         $newKeys = (New-Object "System.Collections.ArrayList") + $keys + $path.keys | Select-Object -Unique
+#         $newDistance = $path.Distance + $distance
+
+#         Write-Verbose "Collected: '$([string]::Join('', $newKeys))' (count: $($newKeys.Count))(viable paths: $($viablePaths.Count))(cache: $($best.Count)), at: $($path.pos.x)x$($path.pos.y)"
+
+#         if (($best | Where-Object {
+#             $cache = $_
+#             -not (($newKeys | Where-Object { $_ -notin $cache.keys } | Select-Object -First 1).Count -gt 0)
+#         } | Where-Object {
+#             $_.distance -le $newDistance
+#         } | Select-Object -First 1).Count -gt 0) {
+#             continue
+#         }
+
+#         $best += @{
+#             distance = $newDistance
+#             keys = $newKeys
+#         }
+
+#         if ($newKeys.Count -lt $totalKeys) {
+#             $best = Collect-AllKeysStepsRec2 $state $path.pos $paths $newKeys $newDistance $best
+#         }
+#     }
+
+#     return $best
+# }
+
+function Test-PathInCache {
     [CmdletBinding()]
-    param([Hashtable]$state, [Hashtable]$position, [Hashtable]$paths, [string[]]$keys, [int]$distance, [System.Collections.ArrayList]$best)
-
-    $pos = "$($position.x)x$($position.y)"
-    $viablePaths = @($paths[$pos] | Where-Object {
-        # Not blocked
-        $path = $_
-        $plausible = -not (($path.doors | Where-Object { $_ -notin $keys } | Select-Object -First 1).Count -gt 0)
-        return $plausible
-    } | Where-Object {
-        # Can actually get a new key
-        $path = $_
-        $plausible = ($path.keys | Where-Object {
-            $_ -notin $keys
-        } | Select-Object -First 1).Count -gt 0
-        return $plausible
-    } | Sort-Object {
-        $_.Distance
-    })
-
-    $totalKeys = $state.keys.Count
-    for ($index = 0; $index -lt $viablePaths.Count; $index++) {
-        $path = $viablePaths[$index]
-
-        $newKeys = (New-Object "System.Collections.ArrayList") + $keys + $path.keys | Select-Object -Unique
-        $newDistance = $path.Distance + $distance
-
-        Write-Verbose "Collected: '$([string]::Join('', $newKeys))' (count: $($newKeys.Count))(viable paths: $($viablePaths.Count))(cache: $($best.Count)), at: $($path.pos.x)x$($path.pos.y)"
-
-        if (($best | Where-Object {
-            $cache = $_
-            -not (($newKeys | Where-Object { $_ -notin $cache.keys } | Select-Object -First 1).Count -gt 0)
-        } | Where-Object {
-            $_.distance -le $newDistance
-        } | Select-Object -First 1).Count -gt 0) {
-            continue
+    param([System.Collections.ArrayList]$array, [Hashtable]$act, [int]$positions)
+    
+    $result = (($array.Where({
+        $res = $true
+        for ($index = 0; $res -and $index -lt $positions; $index++) {
+            $res = $_.pos[$index].x -eq $act.pos[$index].x -and $_.pos[$index].y -eq $act.pos[$index].y
         }
+        return $res
+    }).Where({
+        $cache = $_
+        -not (($act.keys.Where({ $_ -notin $cache.keys }) | Select-Object -First 1).Count -gt 0)
+    }).Where({
+        $_.distance -le $act.distance
+    }) | Select-Object -First 1).Count -gt 0)
 
-        $best += @{
-            distance = $newDistance
-            keys = $newKeys
-        }
-
-        if ($newKeys.Count -lt $totalKeys) {
-            $best = Collect-AllKeysStepsRec2 $state $path.pos $paths $newKeys $newDistance $best
-        }
-    }
-
-    return $best
+    return $result
 }
 
 function Collect-AllKeysSteps3 {
     [CmdletBinding()]
-    param([Hashtable]$state, [Hashtable]$position, [Hashtable]$paths)
+    param([Hashtable]$state, [Hashtable]$paths)
 
     $best = New-Object "System.Collections.ArrayList"
 
     $queue = New-Object "System.Collections.ArrayList"
     [void]$queue.Add(@{
-        distance = 0
+        pos = $state.position
         keys = @()
-        pos = $position
+        distance = 0
     })
 
     $totalKeys = $state.keys.Count
     $index = 0
+    $positions = $state.position.Count
     do {
         $index++
         $act = $queue[0]
         $queue.RemoveAt(0)
         $keys = $act.keys
 
-        if (($best | Where-Object {
-            $_.pos.x -eq $act.pos.x -and $_.pos.y -eq $act.pos.y
-        } | Where-Object {
-            $cache = $_
-            -not (($keys | Where-Object { $_ -notin $cache.keys } | Select-Object -First 1).Count -gt 0)
-        } | Where-Object {
-            $_.distance -le $act.distance
-        } | Select-Object -First 1).Count -gt 0) {
+        if (Test-PathInCache $best $act $positions) {
             continue
+        }
+
+        # if ($VerbosePreference -eq "Continue") {
+        #     $msg = new-object "system.text.stringbuilder"
+        #     [void]$msg.Append((Get-Date -DisplayHint Time))
+        #     [void]$msg.Append(") [")
+        #     [void]$msg.Append($index)
+        #     [void]$msg.Append("] Collected: '")
+        #     if ($keys.Count -eq 0) {
+        #         [void]$msg.Append("''")
+        #     } else {
+        #         [void]$msg.Append([string]::Join('', $keys))
+        #     }
+        #     [void]$msg.Append("' (count: ")
+        #     [void]$msg.Append($keys.Count)
+        #     [void]$msg.Append(")(queue: ")
+        #     [void]$msg.Append($queue.Count)
+        #     [void]$msg.Append(")(cache: ")
+        #     [void]$msg.Append($best.Count)
+        #     [void]$msg.Append("), at:")
+
+        #     $act.pos.ForEach({
+        #         [void]$msg.Append(" ")
+        #         [void]$msg.Append($_.x)
+        #         [void]$msg.Append("x")
+        #         [void]$msg.Append($_.y)
+        #     })
+
+        #     [void]$msg.Append(", distance: ")
+        #     [void]$msg.Append($act.distance)
+
+        #     Write-Verbose $msg
+        # }
+        Write-Verbose "$(Get-Date -DisplayHint Time) [$index] Collected: '$(if ($keys.Count -eq 0) { '' } else { [string]::Join('', $keys) })' (count: $($keys.Count))(queue: $($queue.Count))(cache: $($best.Count)), at: $($act.pos.x)x$($act.pos.y), distance: $($act.distance)"
+
+        if ($keys.Count -eq $totalKeys) {
+            break
         }
 
         [void]$best.Add(@{
@@ -355,37 +428,42 @@ function Collect-AllKeysSteps3 {
             distance = $act.distance
         })
 
-        Write-Verbose "$(Get-Date -DisplayHint Time) [$index] Collected: '$(if ($keys.Count -eq 0) { '' } else { [string]::Join('', $keys) })' (count: $($keys.Count))(queue: $($queue.Count))(cache: $($best.Count)), at: $($act.pos.x)x$($act.pos.y), distance: $($act.distance)"
+        for ($indexp = 0; $indexp -lt $positions; $indexp++) {
+            $pos = "$($act.pos[$indexp].x)x$($act.pos[$indexp].y)"
+            $paths[$pos].Where({
+                # Not blocked
+                $path = $_
+                $plausible = -not (($path.doors.Where({ $_ -notin $keys }) | Select-Object -First 1).Count -gt 0)
+                return $plausible
+            }).Where({
+                # Can actually get a new key
+                $path = $_
+                $plausible = ($path.keys.Where({ $_ -notin $keys }) | Select-Object -First 1).Count -gt 0
+                return $plausible
+            }).ForEach({
+                $path = $_
+                
+                $newKeys = @($keys) + $path.keys | Select-Object -Unique
+                $newDistance = $act.Distance + $path.distance
+                $newPos = New-Object "System.Collections.ArrayList"
+                $newPos.AddRange($act.pos)
+                $newPos[$indexp] = $path.pos
 
-        if ($keys.Count -eq $totalKeys) {
-            break
-        }
+                $newCache = @{
+                    pos = $newPos
+                    keys = $newKeys
+                    distance = $newDistance
+                }
 
-        $pos = "$($act.pos.x)x$($act.pos.y)"
-        $paths[$pos] | Where-Object {
-            # Not blocked
-            $path = $_
-            $plausible = -not (($path.doors | Where-Object { $_ -notin $keys } | Select-Object -First 1).Count -gt 0)
-            return $plausible
-        } | Where-Object {
-            # Can actually get a new key
-            $path = $_
-            $plausible = ($path.keys | Where-Object { $_ -notin $keys } | Select-Object -First 1).Count -gt 0
-            return $plausible
-        } | ForEach-Object {
-            $path = $_
-            
-            $newKeys = @($keys) + $path.keys | Select-Object -Unique
-            $newDistance = $act.Distance + $path.distance
-
-            [void]$queue.Add(@{
-                distance = $newDistance
-                keys = $newKeys
-                pos = $path.pos
+                if (-not (Test-PathInCache $best $newCache $positions) -and -not (Test-PathInCache $queue $newCache $positions)) {
+                    [void]$queue.Add($newCache)
+                }
             })
         }
 
         $queue = [System.Collections.ArrayList]@($queue | Sort-Object {
+            $_.keys.Count
+        } | Sort-Object {
             $_.distance
         })
         
@@ -398,11 +476,12 @@ function Get-GraphPaths {
     [CmdletBinding()]
     param([Hashtable]$state)
 
-    Write-Verbose "$(Get-Date -DisplayHint Time) Map parsed"
     $paths = @{}
     $count = $state.KeyPos.Count + 1
     $index = 1
-    $paths["$($state.Position.x)x$($state.Position.y)"] = @(Get-AllCollactables $state $state.position -Verbose:$false)
+    @($state.Position).ForEach({
+        $paths["$($_.x)x$($_.y)"] = @(Get-AllCollactables $state $_ -Verbose:$false)
+    })
     Write-Verbose "$(Get-Date -DisplayHint Time)    [$index/$count] Analyzed"
     $state.KeyPos | ForEach-Object {
         $key = $_
@@ -421,7 +500,8 @@ function Collect-AllKeysSteps {
 
     Write-Verbose "$(Get-Date -DisplayHint Time) Startring map preparation"
     $state = Parse-Map $stringMap
-    $position = $state.Position
+
+    # $position = $state.Position
 
     # Brute force with paths
     # $keys = @()
@@ -442,7 +522,20 @@ function Collect-AllKeysSteps {
     # } | Select-Object -First 1
     # $res = $res.Distance
 
-    $res = Collect-AllKeysSteps3 $state $state.position $paths
+    $res = Collect-AllKeysSteps3 $state $paths
+
+    return $res
+}
+
+function Collect-AllKeysSteps4Way {
+    [CmdletBinding()]
+    param([string]$stringMap)
+    
+    Write-Verbose "$(Get-Date -DisplayHint Time) Startring map preparation"
+    $state = Parse-Map4Way $stringMap
+    $paths = Get-GraphPaths $state
+    
+    $res = Collect-AllKeysSteps3 $state $paths
 
     return $res
 }
@@ -539,4 +632,98 @@ function Get-Part1Result {
     Write-Host "Result: '$res'"
 
     # 3918 - correct
+}
+
+function Get-Part2Result {
+    [CmdletBinding()]
+    param()
+
+    $stringMap =
+"#################################################################################
+#.............#...#...O.#.#...........#.#...#.........#.......#.....#.......#.Z.#
+#####.#######.#H#.#.###.#.#.#####.###.#.#.###.#####.#.#.#####.#.###.#.###.###.#.#
+#.....#.#...#.#.#...#.#.#.#.#.#...#.....#.#...#...#.#.#...#w..#...#...#.#.....#.#
+#.#####.#.#.#.#.#####.#.#.#B#.#.#########.#.###.#.#.#####.#.#####.#####.#######.#
+#.#...#...#.....#...#.#.#.....#.........#.#.#...#.#.....#.#...#..y..#...#.....#.#
+#.#.#.#.#########.#.#.#.###########.###.#.#.#.#######.###.###.#####.#.#.#.###.#.#
+#.#.#...#.........#.#.......#.....#...#.#.#.#.#.....#.....#.#.#...#...#.#.#...#.#
+#.###.###.#########.#######.#.###.#####.#.#.#.#.###.#######.#.#.#.#####.#.#.###.#
+#...#.#.....#x....#.#..f..#...#...#...#.#.#.#.....#.....#i..#...#.#...#.#.#.#...#
+#.#.#.#.#####.###.#.#A###.#####.###.#.#.#.#.#########.#.#.#.#####.#.#.###.#.#.#.#
+#.#.#.#.#...#.#.#.#...#.#.#...#.#.T.#...#.#...#.....#.#...#.#.#..e#.#.....#.#.#.#
+###.###.#X#.#.#.#.#.###.#.###.#.###.###.#.###.#.###.#.#####.#.#.###.#######.#.#.#
+#...#d..#.#...#.#.#.....#...#.#...#...#.#...#.#.#.....#.......#.#.....#.#...#.#.#
+#.###.###.#####R#.#####.###.#.###.###.#.#.#.#.#.###########.###.#.###.#.#.#####.#
+#...#.#.#...#.......#...#...#...#.....#.#.#...#.....#.....#.#...#...#.#...#...#.#
+###E#.#.###.#######.#####.###.#.#######.#.#####.###N#.###.###.###.###.#.###.#.#.#
+#.#...#...#..c..#...#r..F.#...#.....#.#.#...#.#.#.#.#...#.#...#...#...#.....#.#.#
+#.#####.#######.###.#.#######.#####.#.#.###.#.#.#.#.###.#.#.###.###.#########.#.#
+#z....#.......#...#...#.....#s#.......#.#.#.#.....#...#.#...#v..#.#...#.....#...#
+#.#.###.#.#######.#####G###.#.#######.#.#.#.#####.#.###.#######.#.###.#.#######.#
+#.#.#...#.......#...#...#.#.#...#...#.#.#.#.....#.#...#.D.....#.....#.#.......#.#
+###.#.#########.###C#####.#.#.#.#.#.###.#.#####.#####.###############.#.#####.#.#
+#...#...#.....#...#....g....#.#.#.#.....#.....#.....#...........#.....#.....#...#
+#.#####.#.###.#.#############.#.#.#######.#########.#.#######.#.#.#########.#####
+#.....#...#...#.#.........#...#.#.#.....#.........#.#.#.....#.#...#.......#.#..u#
+#Q#.#######.###.#.#.#.#####.###.#.#####.#.#######.#.###.###.#.#####.###.#.#.#.###
+#.#.......#.#...#.#.#.#...#.#.#...#...#.#.#.....#.#.#...#.#.#...#.....#.#.#.#...#
+#.#####.###.#.###.#.###.#.#.#.#####.#.#.#.#.###.#.#.#.###.#.#.#.#######.#.#.#.#.#
+#...#...#...#.....#.....#...#.......#...#.#.#.#.K.#...#.#...#.#.#.......#.#.#.#.#
+###.#.###.#####################.###.#####.#.#.#.#######.#.#####.#.#####.###.#.#.#
+#...#.....#...#.....#.........#...#.#...#.#.#...#.......#...#...#...#...#...#.#.#
+#.#########.###.###.#.###.###.###.#.#.#.###.#####.#.###.###.#.###.#.#.###.#####.#
+#.#.....#.........#...#...#.#.#.#.#.#.#.#...#.....#.#l..#.#.#...#.#.#...#...#...#
+#.###.#.###.###########.###.#.#.#.#.#.#.#.###.#####.#.###.#.###.#.#.#.#####.#.#.#
+#.#...#...#...#...#.....#...#.#...#...#.#...#.#.#...#.....#.....#.#.#.#...#.#.#.#
+#.#.#####.#.###.#.#.#####.###.#########.#.#.#.#.#.#################.###.#.#P#.#.#
+#.#.#.....#.#...#.#...#.#...#.#.....#...#.#.#.#.#.#.................#...#...#.#.#
+#.#.#.#######.###.###.#.#.#.#.#.###.#.#.#.#.#.#.#.#.#########.#######.#######.#.#
+#.U.#p........#....j..#...#.....#.....#...#.....#...........#...........J.....#.#
+#######################################.@.#######################################
+#...#.....#...#.......#.........#.........#.....#.....#.....#.....#.............#
+#.#.#.###.###.#.#L###.#.#####.###.#.###.#.#.#.###.#.###.#.#.#.#.#.#.#########.#.#
+#.#...#.....#...#...#.#.#...#.....#...#.#...#.....#.....#.#.#.#.#.#.#.......#q#.#
+#.#.#######.#.#####.#.###.#.#########.#.#.###############.###.#.#.###.#####.###.#
+#.#.#.....#.#...#...#.....#.#.........#.#.#.....#.....#...#...#.#.....#...#...#.#
+#.#.#.###.#.#####.#########.#.#########.#.#.#.#.#.###.#.###.###.#.#####.#.###.#.#
+#.#.#...#.#.....#.....#...#...#.......#.#.#.#.#...#...#.#.....#.#.#...#.#...#...#
+#.#####.#.#####.#####.#.#######.###.###.#.#.#.#####.###.#.#####.#.#.#.#.###.###.#
+#.....#.#...#...#...#.#...........#...#.#k#.#...#.....#.#.#.....#.#.#.#...#...#.#
+#####.#.###.###.#.#.#.#.#############.#.#.#.###.#.#####.#.#.#######.#.###.#.###.#
+#.....#...#...#...#...#.#...........#...#.#...#.#...#...#.#...#...#.#...#.#.....#
+#.#######.###.#####.#####.#########.#.###.#####.###.#.###.###.#.#.#.###.#.#######
+#.......#...#.....#.#.....#.......#.#...#.......#.#.#.#...#.#...#.....#.#.#.....#
+#.###.#####.#####.###.#####.#.#.###.#############.#.#.#.###.###########.#.#.###.#
+#...#.#.........#...#.#.....#.#.#...#...#...#.....#.#...#...#.......#...#.#.#m..#
+#.###.#.###########.#.#######.###.###.#.#.#.#.#.###.#####.#.#######.#.###.#.#.#.#
+#.#...#...#.#.......#...#...#.W...#...#.#.#.#.#.....#.....#...#.....#...#.#.#.#.#
+###.#.###.#.#.#########.#.#.#####.###.#.#.###.#######.#######.#.###.###.#.###.#.#
+#...#...#...#...#.....#...#.....#...#.#.#.#...#.........#.......#.#.#...#.....#.#
+#.#########.###.#.#.###########.###.#.#.#.#.###.#######.#.#######.#.#.#########.#
+#.........#.#...#.#.#....a......#.#...#.#.#...#.#.......#.#...#.....#.#...#.....#
+#.#######.#.#.###.#.#############.#####.#.###.#.#.#######.#.###.#####.###.#.#####
+#.#.....#...#.#...#.....#...#.......#h..#.....#.#.#.......#.#...#...#...#.#.#...#
+#.###.#.#####.#.#####.#.#.#.#.#####.#.###.#######.#######.#.#####.#.###.#.#.#.#.#
+#...#.#...#...#.#...#.#.#.#..o#...#...#.#.......#.......#.#.....#.#.#...#.....#.#
+###.#####.#.#.#.###.#.###.#######.#####.#######.#.#####.#######.#.#.#.###########
+#.#...#...#.#.#.....#.....#.#.......#...#...#...#.....#.......#.#.#.#...#.......#
+#.###.#.###.#.#####.#######.#.#I###.###.#.#.#.###########.###.#.#.#.###.#.#####.#
+#...#...#...#.....#.#.#.....#.#...#t..#.#.#...#.........#.#.#.#...#...#...#.....#
+#.#####.#.#########.#.#.###.#.###.###.#.#.#####.#######.#.#.#.#######.#####.#####
+#...M...#.......#...#...#.#...#.#...#...#.......#.....#.#.#.........#.....#.#...#
+#.#############.#.###.###.#####.###.#############.#####.#.#.#######.#####.#.###.#
+#.#.....Y...#.#.#.#.#.#..b..#...#.#.#...#...#.........#.#.#.#...#.#.#...#...#...#
+#.#.#######.#.#.#.#.#.###.#.#.#.#.#.#.#.#.#.#.#######.#.#.###.#.#.#.#.#.#####.#.#
+#...#n....#.#.#...#.......#...#...#...#.#.#.#.#.....#...#.....#.#...#.#.......#.#
+#####.###.#.#.###################.#####.#.###.#.###.#####V#####.#.###.###.#####.#
+#.....#...#...#.....#...#...#.....#.....#.....#...#...........#.#...#.#...#.....#
+#.###########.###.#.#.#.#.#.#######.###.#.#####################.###.###.###.#####
+#.................#...#...#.........#.S.#.......................#.......#.......#
+#################################################################################"
+    
+    $res = Collect-AllKeysSteps4Way $stringMap
+
+    Write-Host "Result: '$res'"
+
+    # 2004 - correct
 }
