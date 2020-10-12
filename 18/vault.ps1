@@ -341,88 +341,122 @@ function Get-AllCollactables {
 
 function Test-PathInCache {
     [CmdletBinding()]
-    param([System.Collections.ArrayList]$array, [Hashtable]$act, [int]$positions)
-    
-    $result = (($array.Where({
-        $res = $true
-        for ($index = 0; $res -and $index -lt $positions; $index++) {
-            $res = $_.pos[$index].x -eq $act.pos[$index].x -and $_.pos[$index].y -eq $act.pos[$index].y
-        }
-        return $res
-    }).Where({
-        $cache = $_
-        -not (($act.keys.Where({ $_ -notin $cache.keys }) | Select-Object -First 1).Count -gt 0)
-    }).Where({
-        $_.distance -le $act.distance
-    }) | Select-Object -First 1).Count -gt 0)
+    param([Hashtable]$cache, [Hashtable]$act, [int]$positions)
 
-    return $result
+    $key = Convert-PosToStrKey $act.pos $positions
+
+    if ($cache[$key]) {
+        $entry = $cache[$key].Where({
+            $_.distance -le $act.distance
+        }).Where({
+            $cacheEntry = $_
+            -not (($act.keys.Where({ $_ -notin $cacheEntry.keys }) | Select-Object -First 1).Count -gt 0)
+        }) | Select-Object -First 1
+        return ($entry.Count -gt 0)
+    } else {
+        return $false
+    }
+    
+    # $result = (($cache.Where({
+    #     $res = $true
+    #     for ($index = 0; $res -and $index -lt $positions; $index++) {
+    #         $res = $_.pos[$index].x -eq $act.pos[$index].x -and $_.pos[$index].y -eq $act.pos[$index].y
+    #     }
+    #     return $res
+    # }).Where({
+    #     $cache = $_
+    #     -not (($act.keys.Where({ $_ -notin $cache.keys }) | Select-Object -First 1).Count -gt 0)
+    # }).Where({
+    #     $_.distance -le $act.distance
+    # }) | Select-Object -First 1).Count -gt 0)
+
+    # return $result
+}
+
+function Convert-PosToStrKey {
+    [CmdletBinding()]
+    param([Hashtable[]]$position, [int]$positions)
+
+    $key = new-object "system.text.stringbuilder"
+
+    for ($index = 0; $index -lt $positions; $index++) {
+        if ($index -gt 0) {
+            [void]$key.Append(" ")
+        }
+
+        [void]$key.Append($position[$index].x)
+        [void]$key.Append("x")
+        [void]$key.Append($position[$index].y)
+    }
+
+    return ($key.ToString())
 }
 
 function Collect-AllKeysSteps3 {
     [CmdletBinding()]
     param([Hashtable]$state, [Hashtable]$paths)
 
-    $best = New-Object "System.Collections.ArrayList"
-
+    $best = @{}
     $queue = New-Object "System.Collections.ArrayList"
     [void]$queue.Add(@{
-        pos = $state.position
+        pos = @($state.position)
         keys = @()
         distance = 0
     })
 
     $totalKeys = $state.keys.Count
     $index = 0
-    $positions = $state.position.Count
+    $cacheCount = 0
+    $positions = $queue[0].pos.Count
     do {
         $index++
         $act = $queue[0]
         $queue.RemoveAt(0)
         $keys = $act.keys
 
+        $key = Convert-PosToStrKey $act.pos $positions
+        # Write-Verbose "'$key' '$positions'"
+
         if (Test-PathInCache $best $act $positions) {
+            # Write-Verbose "$((Get-Date -DisplayHint Time)) [$index] Skipping: '$(if ($keys.Count -gt 0) { [string]::Join('', $keys) })', at: $key, distance: $($act.distance)"
             continue
         }
 
-        # if ($VerbosePreference -eq "Continue") {
-        #     $msg = new-object "system.text.stringbuilder"
-        #     [void]$msg.Append((Get-Date -DisplayHint Time))
-        #     [void]$msg.Append(") [")
-        #     [void]$msg.Append($index)
-        #     [void]$msg.Append("] Collected: '")
-        #     if ($keys.Count -eq 0) {
-        #         [void]$msg.Append("''")
-        #     } else {
-        #         [void]$msg.Append([string]::Join('', $keys))
-        #     }
-        #     [void]$msg.Append("' (count: ")
-        #     [void]$msg.Append($keys.Count)
-        #     [void]$msg.Append(")(queue: ")
-        #     [void]$msg.Append($queue.Count)
-        #     [void]$msg.Append(")(cache: ")
-        #     [void]$msg.Append($best.Count)
-        #     [void]$msg.Append("), at:")
+        if ($VerbosePreference -eq "Continue") {
+            $msg = new-object "system.text.stringbuilder"
+            [void]$msg.Append((Get-Date -DisplayHint Time))
+            [void]$msg.Append(" [")
+            [void]$msg.Append($index)
+            [void]$msg.Append("] Collected: '")
+            if ($keys.Count -gt 0) {
+                [void]$msg.Append([string]::Join('', $keys))
+            }
+            [void]$msg.Append("' (count: ")
+            [void]$msg.Append($keys.Count)
+            [void]$msg.Append(")(queue: ")
+            [void]$msg.Append($queue.Count)
+            [void]$msg.Append(")(cache: ")
+            [void]$msg.Append($cacheCount)
+            [void]$msg.Append("), at: ")
+            [void]$msg.Append($key)
+            [void]$msg.Append(", distance: ")
+            [void]$msg.Append($act.distance)
 
-        #     $act.pos.ForEach({
-        #         [void]$msg.Append(" ")
-        #         [void]$msg.Append($_.x)
-        #         [void]$msg.Append("x")
-        #         [void]$msg.Append($_.y)
-        #     })
+            Write-Verbose $msg
 
-        #     [void]$msg.Append(", distance: ")
-        #     [void]$msg.Append($act.distance)
-
-        #     Write-Verbose $msg
-        # }
-        Write-Verbose "$(Get-Date -DisplayHint Time) [$index] Collected: '$(if ($keys.Count -eq 0) { '' } else { [string]::Join('', $keys) })' (count: $($keys.Count))(queue: $($queue.Count))(cache: $($best.Count)), at: $($act.pos.x)x$($act.pos.y), distance: $($act.distance)"
+            # Write-Verbose "$(Get-Date -DisplayHint Time) [$index] Collected: '$(if ($keys.Count -eq 0) { '' } else { [string]::Join('', $keys) })' (count: $($keys.Count))(queue: $($queue.Count))(cache: $($best.Count)), at: $($act.pos.x)x$($act.pos.y), distance: $($act.distance)"
+        }
 
         if ($keys.Count -eq $totalKeys) {
             break
         }
 
-        [void]$best.Add(@{
+        if ($best[$key].Count -lt 1) {
+            $best[$key] = New-Object "System.Collections.ArrayList"
+        }
+
+        $cacheCount++
+        [void]$best[$key].Add(@{
             pos = $act.pos
             keys = $keys
             distance = $act.distance
@@ -455,7 +489,9 @@ function Collect-AllKeysSteps3 {
                     distance = $newDistance
                 }
 
-                if (-not (Test-PathInCache $best $newCache $positions) -and -not (Test-PathInCache $queue $newCache $positions)) {
+                # Write-Verbose "New in queue: '$(if ($newKeys.Count -eq 0) { '' } else { [string]::Join('', $newKeys) })'"
+
+                if (-not (Test-PathInCache $best $newCache $positions)) {
                     [void]$queue.Add($newCache)
                 }
             })
