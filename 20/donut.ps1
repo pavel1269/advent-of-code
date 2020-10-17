@@ -216,7 +216,7 @@ function Parse-Map {
 
 function Get-AccessibleSurrounding {
     [CmdletBinding()]
-    param($state, $where)
+    param($state, $where, $level = 0)
 
     if (-not ($state.map[$where.y]) -or $state.map.Count -le $where.y) {
         throw "Testing unown area Y"
@@ -233,27 +233,49 @@ function Get-AccessibleSurrounding {
 
     $paths = New-Object "System.Collections.ArrayList"
     if ($state.map[$where.y - 1][$where.x] -eq '.') {
-        [void]$paths.Add(@{ x = $where.x; y = $where.y - 1 })
+        [void]$paths.Add(@{
+            pos = @{ x = $where.x; y = $where.y - 1 }
+            level = $level
+        })
     }
 
     $posStr = "$($where.x)x$($where.y + 1)"
     if ($state.map[$where.y + 1][$where.x] -eq '.') {
-        [void]$paths.Add(@{ x = $where.x; y = $where.y + 1 })
+        [void]$paths.Add(@{
+            pos = @{ x = $where.x; y = $where.y + 1 }
+            level = $level
+        })
     }
 
     $posStr = "$($where.x - 1)x$($where.y)"
     if ($state.map[$where.y][$where.x - 1] -eq '.') {
-        [void]$paths.Add(@{ x = $where.x - 1; y = $where.y })
+        [void]$paths.Add(@{
+            pos = @{ x = $where.x - 1; y = $where.y }
+            level = $level
+        })
     }
 
     $posStr = "$($where.x + 1)x$($where.y)"
     if ($state.map[$where.y][$where.x + 1] -eq '.') {
-        [void]$paths.Add(@{ x = $where.x + 1; y = $where.y })
+        [void]$paths.Add(@{
+            pos = @{ x = $where.x + 1; y = $where.y }
+            level = $level
+        })
     }
     
     $posStr = "$($where.x)x$($where.y)"
     if ($state.portals[$posStr]) {
-        [void]$paths.Add($state.portals[$posStr])
+        if ($where.x -gt $state.start.x -and $where.x -lt $state.end.x -and $where.y -gt $state.start.y -and $where.y -lt $state.end.y) {
+            [void]$paths.Add(@{
+                pos = $state.portals[$posStr]
+                level = $level + 1
+            })
+        } else {
+            [void]$paths.Add(@{
+                pos = $state.portals[$posStr]
+                level = $level - 1
+            })
+        }
     }
 
     return $paths
@@ -287,17 +309,72 @@ function Traverse-Map {
 
         Get-AccessibleSurrounding $state $act.pos | ForEach-Object {
             $queue.Enqueue(@{
-                pos = $_
+                pos = $_.pos
                 distance = $act.distance + 1
             })
         }
-
     }
 
     return -1
 }
 
-function Get-Part1Result {
+function Traverse-MapWithLevels {
+    [CmdletBinding()]
+    param($state)
+
+    $visited = @{}
+    $queue = New-Object "System.Collections.Queue"
+    
+    $queue.Enqueue(@{
+        pos = $state.startPos
+        distance = 0
+        level = 0
+    })
+
+    while ($queue.Count -gt 0) {
+        $act = $queue.Dequeue()
+
+        $actStr = "$($act.pos.x)x$($act.pos.y)x$($act.level)"
+        if ($visited[$actStr]) {
+            # Write-Verbose "$(Get-Date -DisplayHint Time) Skipping (1) '$($act.pos.x)x$($act.pos.y)' Level: '$($act.level)', distance: '$($act.distance)', $actStr"
+            continue
+        }
+        # $visited[$actStr] = @{ level = $act.level }
+
+        # $actStr = "$($act.pos.x)x$($act.pos.y)"
+        # if ($visited[$actStr]) {
+        #     if ($visited[$actStr].level -le $act.level) {
+        #         Write-Verbose "$(Get-Date -DisplayHint Time) Skipping (2) '$($act.pos.x)x$($act.pos.y)' Level: '$($act.level)', distance: '$($act.distance)', $($visited[$actStr].level) $actStr"
+        #         continue
+        #     # } elseif ($cacheLevel -lt 0 -and $act.level -le $cacheLevel) {
+        #         # Write-Verbose "$(Get-Date -DisplayHint Time) Skipping (3) '$($act.pos.x)x$($act.pos.y)' Level: '$($act.level)', distance: '$($act.distance)', $cacheLevel $actStr"
+        #         # continue
+        #     }
+        # }
+        # $visited[$actStr] = @{ level = $act.level }
+        $visited[$actStr] = $true
+
+        Write-Verbose "$(Get-Date -DisplayHint Time) Look at '$($act.pos.x)x$($act.pos.y)' Level: '$($act.level)', distance: '$($act.distance)'"
+
+        if ($act.level -eq 0 -and $act.pos.x -eq $state.endPos.x -and $act.pos.y -eq $state.endPos.y) {
+            return $act.distance
+        }
+
+        Get-AccessibleSurrounding $state $act.pos $act.level | ForEach-Object {
+            if ($_.level -ge 0) {
+                $queue.Enqueue(@{
+                    pos = $_.pos
+                    distance = $act.distance + 1
+                    level = $_.level
+                })
+            }
+        }
+    }
+
+    return -1
+}
+
+function Get-MapEntry {
     [CmdletBinding()]
     param()
 
@@ -422,10 +499,31 @@ AA..........#.................#..KS                                             
                                      N       Y           T       Z E       Z   T       I                                   
                                      O       L           P       Z M       E   T       H                                   "
 
+    return $stringMap
+}
+
+function Get-Part1Result {
+    [CmdletBinding()]
+    param()
+
+    $stringMap = Get-MapEntry
     $state = Parse-Map $stringMap
     $result = Traverse-Map $state
 
     write-host "Result: $result"
 
     # 608 - correct
+}
+
+function Get-Part1Result {
+    [CmdletBinding()]
+    param()
+
+    $stringMap = Get-MapEntry
+    $state = Parse-Map $stringMap
+    $result = Traverse-MapWithLevels $state
+
+    write-host "Result: $result"
+
+    # 6706 - correct
 }
