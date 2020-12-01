@@ -8,3 +8,7 @@ Here are my scripts which i used for solving.
 ## Disclaimer
 
 Code is provided as is without any warranty.
+
+## How to use
+
+- Run `cargo test` to see unit test results
