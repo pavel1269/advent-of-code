@@ -1,8 +1,9 @@
 
 mod day01;
+mod day02;
 
 // Define these two as of your liking to speed up "run"
-const DEFAULT_DAY: usize = 1;
+const DEFAULT_DAY: usize = 2;
 const DEFAULT_PART: usize = 1;
 
 const MAX_PARTS: usize = 2;
@@ -20,15 +21,23 @@ fn main() {
     println!("Result: {}", result);
 }
 
-fn get_known_solutions() -> [[fn() -> i32; MAX_PARTS]; 1] {
-    let known_solutions: [[fn() -> i32; MAX_PARTS]; 1] = [
+fn get_known_solutions() -> [[fn() -> i32; MAX_PARTS]; 2] {
+    let known_solutions: [[fn() -> i32; MAX_PARTS]; 2] = [
         [
             day01::get_solution_day01_part1,
             day01::get_solution_day01_part2,
-        ]
+        ],
+        [
+            day02::get_solution_day02_part1,
+            get_not_implemented_solution,
+        ],
     ];
 
     return known_solutions;
+}
+
+fn get_not_implemented_solution() -> i32 {
+    panic!("Trying to retrieve not implemented solution!")
 }
 
 fn read_user_selection(max_day: usize) -> (usize, usize) {
