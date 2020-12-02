@@ -4,7 +4,7 @@ mod day02;
 
 // Define these two as of your liking to speed up "run"
 const DEFAULT_DAY: usize = 2;
-const DEFAULT_PART: usize = 1;
+const DEFAULT_PART: usize = 2;
 
 const MAX_PARTS: usize = 2;
 
@@ -29,13 +29,14 @@ fn get_known_solutions() -> [[fn() -> i32; MAX_PARTS]; 2] {
         ],
         [
             day02::get_solution_day02_part1,
-            get_not_implemented_solution,
+            day02::get_solution_day02_part2,
         ],
     ];
 
     return known_solutions;
 }
 
+#[allow(dead_code)]
 fn get_not_implemented_solution() -> i32 {
     panic!("Trying to retrieve not implemented solution!")
 }
