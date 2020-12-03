@@ -1,16 +1,16 @@
 
-pub fn get_solution_day01_part1() -> i32 {
+pub fn get_solution_day01_part1() -> i64 {
     let entries = get_part1_input();
     let result = get_two_entries_which_sum(2020, entries);
 
-    return result.0 * result.1;
+    return (result.0 * result.1) as i64;
 }
 
-pub fn get_solution_day01_part2() -> i32 {
+pub fn get_solution_day01_part2() -> i64 {
     let entries = get_part1_input();
     let result = get_three_entries_which_sum(2020, entries);
 
-    return result.0 * result.1 * result.2;
+    return (result.0 * result.1 * result.2) as i64;
 }
 
 fn get_two_entries_which_sum(sum_value: i32, entries: Vec<i32>) -> (i32, i32) {

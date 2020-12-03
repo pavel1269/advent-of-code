@@ -1,18 +1,18 @@
 
-pub fn get_solution_day02_part1() -> i32 {
+pub fn get_solution_day02_part1() -> i64 {
     let input = get_part1_input();
     let parsed_input = parse_input(input);
     let result = get_number_of_valid_passwords_part1(parsed_input);
 
-    return result;
+    return result as i64;
 }
 
-pub fn get_solution_day02_part2() -> i32 {
+pub fn get_solution_day02_part2() -> i64 {
     let input = get_part1_input();
     let parsed_input = parse_input(input);
     let result = get_number_of_valid_passwords_part2(parsed_input);
 
-    return result;
+    return result as i64;
 }
 
 fn get_number_of_valid_passwords_part1(inputs: Vec<Vec<&str>>) -> i32 {
