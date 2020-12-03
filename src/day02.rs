@@ -71,7 +71,7 @@ fn parse_input(input: Vec<&str>) -> Vec<Vec<&str>> {
 }
 
 fn get_part1_input() -> Vec<&'static str> {
-    include_str!("./inputs/day02part1.txt").lines().collect()
+    include_str!("./inputs/day02.txt").lines().collect()
 }
 
 #[cfg(test)]
