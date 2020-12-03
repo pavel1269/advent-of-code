@@ -66,9 +66,12 @@ fn get_challenge_input() -> Vec<&'static str> {
     include_str!("./inputs/day03.txt").lines().collect()
 }
 
-#[allow(dead_code)]
-fn get_example_input() -> Vec<&'static str> {
-    "..##.......
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_example_input() -> Vec<&'static str> {
+        "..##.......
 #...#...#..
 .#....#..#.
 ..#.#...#.#
@@ -79,12 +82,8 @@ fn get_example_input() -> Vec<&'static str> {
 #.##...#...
 #...##....#
 .#..#...#.#".lines().collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
+    }
+    
     #[test]
     fn example_part1_correct_result() {
         let input = get_example_input();
