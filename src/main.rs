@@ -1,10 +1,11 @@
 
 mod day01;
 mod day02;
+mod day03;
 
 // Define these two as of your liking to speed up "run"
-const DEFAULT_DAY: usize = 2;
-const DEFAULT_PART: usize = 2;
+const DEFAULT_DAY: usize = 3;
+const DEFAULT_PART: usize = 1;
 
 const MAX_PARTS: usize = 2;
 
@@ -21,8 +22,8 @@ fn main() {
     println!("Result: {}", result);
 }
 
-fn get_known_solutions() -> [[fn() -> i32; MAX_PARTS]; 2] {
-    let known_solutions: [[fn() -> i32; MAX_PARTS]; 2] = [
+fn get_known_solutions() -> [[fn() -> i32; MAX_PARTS]; 3] {
+    let known_solutions: [[fn() -> i32; MAX_PARTS]; 3] = [
         [
             day01::get_solution_day01_part1,
             day01::get_solution_day01_part2,
@@ -31,6 +32,10 @@ fn get_known_solutions() -> [[fn() -> i32; MAX_PARTS]; 2] {
             day02::get_solution_day02_part1,
             day02::get_solution_day02_part2,
         ],
+        [
+            day03::get_solution_part1,
+            get_not_implemented_solution,
+        ]
     ];
 
     return known_solutions;
