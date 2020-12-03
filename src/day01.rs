@@ -1,12 +1,12 @@
 
-pub fn get_solution_day01_part1() -> i64 {
+pub fn get_solution_part1() -> i64 {
     let entries = get_input();
     let result = get_two_entries_which_sum(2020, &entries).unwrap();
 
     return (result.0 * result.1) as i64;
 }
 
-pub fn get_solution_day01_part2() -> i64 {
+pub fn get_solution_part2() -> i64 {
     let entries = get_input();
     let result = get_three_entries_which_sum(2020, &entries).unwrap();
 
@@ -77,31 +77,31 @@ mod tests {
     ];
 
     #[test]
-    fn example_part1() {
+    fn example_part1_correct_result() {
         let entries = get_two_entries_which_sum(2020, &EXAMPLE_INPUT).unwrap();
 
         assert_eq!((1721, 299), entries);
     }
 
     #[test]
-    fn day01_part1() {
+    fn input_part1_correct_result() {
         let expected_result = 545379;
-        let result = get_solution_day01_part1();
+        let result = get_solution_part1();
 
         assert_eq!(expected_result, result);
     }
 
     #[test]
-    fn example_part2() {
+    fn example_part2_correct_result() {
         let entries = get_three_entries_which_sum(2020, &EXAMPLE_INPUT).unwrap();
 
         assert_eq!((979, 366, 675), entries);
     }
 
     #[test]
-    fn day01_part2() {
+    fn input_part2_correct_result() {
         let expected_result = 257778836;
-        let result = get_solution_day01_part2();
+        let result = get_solution_part2();
 
         assert_eq!(expected_result, result);
     }

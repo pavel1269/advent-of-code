@@ -25,8 +25,8 @@ fn main() {
 fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 3] {
     let known_solutions: [[fn() -> i64; MAX_PARTS]; 3] = [
         [
-            day01::get_solution_day01_part1,
-            day01::get_solution_day01_part2,
+            day01::get_solution_part1,
+            day01::get_solution_part2,
         ],
         [
             day02::get_solution_day02_part1,
