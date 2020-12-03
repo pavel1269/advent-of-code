@@ -57,7 +57,7 @@ fn get_three_entries_which_sum(sum_value: i32, entries: &[i32]) -> Result<(i32, 
 }
 
 fn get_input() -> Vec<i32> {
-    let file_contents = include_str!("./inputs/d01p1.txt").split_whitespace();
+    let file_contents = include_str!("./inputs/day01.txt").split_whitespace();
     let entries = file_contents.map(|entry| entry.trim().parse().expect("Failed to convert number to integer")).collect();
 
     return entries;
