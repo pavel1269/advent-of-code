@@ -29,13 +29,13 @@ fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 3] {
             day01::get_solution_part2,
         ],
         [
-            day02::get_solution_day02_part1,
-            day02::get_solution_day02_part2,
+            day02::get_solution_part1,
+            day02::get_solution_part2,
         ],
         [
             day03::get_solution_part1,
             day03::get_solution_part2,
-        ]
+        ],
     ];
 
     return known_solutions;

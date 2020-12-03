@@ -1,14 +1,14 @@
 
-pub fn get_solution_day02_part1() -> i64 {
-    let input = get_part1_input();
+pub fn get_solution_part1() -> i64 {
+    let input = get_input();
     let parsed_input = parse_input(input);
     let result = get_number_of_valid_passwords_part1(parsed_input);
 
     return result as i64;
 }
 
-pub fn get_solution_day02_part2() -> i64 {
-    let input = get_part1_input();
+pub fn get_solution_part2() -> i64 {
+    let input = get_input();
     let parsed_input = parse_input(input);
     let result = get_number_of_valid_passwords_part2(parsed_input);
 
@@ -49,10 +49,6 @@ fn get_number_of_valid_passwords_part2(inputs: Vec<Vec<&str>>) -> i32 {
 
         // println!("min: {}({}), max: {}({}), letter: {}({}), password: {}x ({}), pos1: {}, pos2 {}", min, line[0], max, line[1], character, line[2], char_count, line[4], pos1_present, pos2_present);
 
-        // if char_count < min || char_count > max {
-        //     continue;
-        // }
-
         if pos1_present && pos2_present {
             continue
         }
@@ -70,7 +66,7 @@ fn parse_input(input: Vec<&str>) -> Vec<Vec<&str>> {
     input.iter().map(|line| line.splitn(5, |s: char| s.is_whitespace() || s == '-' || s== ':').collect()).collect()
 }
 
-fn get_part1_input() -> Vec<&'static str> {
+fn get_input() -> Vec<&'static str> {
     include_str!("./inputs/day02.txt").lines().collect()
 }
 
@@ -79,17 +75,15 @@ mod tests {
     use super::*;
 
     fn get_example_input() -> Vec<&'static str> {
-        let input = vec![
+        vec![
             "1-3 a: abcde",
             "1-3 b: cdefg",
             "2-9 c: ccccccccc",
-        ];
-
-        return input;
+        ]
     }
 
     #[test]
-    fn example_part1() {
+    fn example_part1_correct_result() {
         let input = get_example_input();
         let parsed_input = parse_input(input);
         let result = get_number_of_valid_passwords_part1(parsed_input);
@@ -98,15 +92,15 @@ mod tests {
     }
 
     #[test]
-    fn day01_part1() {
+    fn input_part1_correct_result() {
         let expected_result = 548;
-        let result = get_solution_day02_part1();
+        let result = get_solution_part1();
 
         assert_eq!(expected_result, result);
     }
 
     #[test]
-    fn example_part2() {
+    fn example_part2_correct_result() {
         let input = get_example_input();
         let parsed_input = parse_input(input);
         let result = get_number_of_valid_passwords_part2(parsed_input);
@@ -115,9 +109,9 @@ mod tests {
     }
 
     #[test]
-    fn day01_part2() {
+    fn input_part2_correct_result() {
         let expected_result = 502;
-        let result = get_solution_day02_part2();
+        let result = get_solution_part2();
 
         assert_eq!(expected_result, result);
     }
