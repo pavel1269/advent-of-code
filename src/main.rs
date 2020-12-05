@@ -5,21 +5,16 @@ mod day03;
 mod day04;
 mod day05;
 
-// Define these two as of your liking to speed up "run"
-const DEFAULT_DAY: usize = 5;
-const DEFAULT_PART: usize = 2;
-
 const MAX_PARTS: usize = 2;
 
 fn main() {
     let known_solutions = get_known_solutions();
-    let max_day = known_solutions.len();
-    let input = read_user_selection(max_day);
+    let user_input = read_user_selection(&known_solutions);
 
     println!();
-    println!("Selected day '{}' part '{}'", input.0 + 1, input.1 + 1);
+    println!("Selected day '{}' part '{}'", user_input.0, user_input.1);
 
-    let solution_fn = known_solutions[input.0][input.1];
+    let solution_fn = known_solutions[user_input.0 - 1][user_input.1 - 1];
     let result = solution_fn();
     println!("Result: {}", result);
 }
@@ -51,12 +46,18 @@ fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 5] {
     return known_solutions;
 }
 
-#[allow(dead_code)]
 fn get_not_implemented_solution() -> i64 {
     panic!("Trying to retrieve not implemented solution!")
 }
 
-fn read_user_selection(max_day: usize) -> (usize, usize) {
+fn read_user_selection(known_solutions: &[[fn() -> i64; MAX_PARTS]]) -> (usize, usize) {
+    let max_day = known_solutions.len();
+    let default_part = if known_solutions[max_day - 1][1] == get_not_implemented_solution {
+        1
+    } else {
+        2
+    };
+
     println!("Welcome to the Advent of code Solution by pavel1269");
 
     use std::io::Write;
@@ -64,7 +65,7 @@ fn read_user_selection(max_day: usize) -> (usize, usize) {
         println!();
         println!("Please enter solution day you are interested in.");
         println!("   - Day must be in range <{}, {}>", 1, max_day);
-        println!("   - Leave empty for default day '{}' part '{}'", DEFAULT_DAY, DEFAULT_PART);
+        println!("   - Leave empty for default day '{}' part '{}'", max_day, default_part);
         print!("Enter day: ");
         std::io::stdout().flush().expect("Failed to flush stdout");
 
@@ -74,7 +75,7 @@ fn read_user_selection(max_day: usize) -> (usize, usize) {
             .expect("Failed to read user input");
 
         if input.trim().is_empty() {
-            break (DEFAULT_DAY - 1, DEFAULT_PART - 1);
+            break (max_day, default_part);
         }
     
         let selected_day: usize = match input.trim().parse() {
@@ -92,7 +93,7 @@ fn read_user_selection(max_day: usize) -> (usize, usize) {
 
         let selected_part = read_user_selection_for_part(selected_day);
 
-        break (selected_day - 1, selected_part - 1);
+        break (selected_day, selected_part);
     }
 }
 
@@ -103,7 +104,6 @@ fn read_user_selection_for_part(selected_day: usize) -> usize {
         println!();
         println!("Selected day '{}', now enter which part.", selected_day);
         println!("   - Part must be in range <{}, {}>", 1, MAX_PARTS);
-        println!("   - Leave empty for default part '{}'", DEFAULT_PART);
         print!("Enter part: ");
         std::io::stdout().flush().expect("Failed to flush stdout");
         
@@ -113,7 +113,7 @@ fn read_user_selection_for_part(selected_day: usize) -> usize {
             .expect("Failed to read user input");
 
         if input.trim().is_empty() {
-            break DEFAULT_PART;
+            continue;
         }
     
         let selected_part: usize = match input.trim().parse() {
@@ -129,34 +129,6 @@ fn read_user_selection_for_part(selected_day: usize) -> usize {
             continue;
         }
 
-        break selected_part
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use more_asserts::*;
-
-    #[test]
-    fn default_part_big_enough() {
-        assert_ge!(DEFAULT_PART, 1);
-    }
-
-    #[test]
-    fn default_part_small_enough() {
-        assert_le!(DEFAULT_PART, MAX_PARTS);
-    }
-    
-    #[test]
-    fn default_day_big_enough() {
-        assert_ge!(DEFAULT_DAY, 1);
-    }
-    
-    #[test]
-    fn default_day_smalls_enough() {
-        let known_solutions = get_known_solutions().len();
-
-        assert_le!(DEFAULT_DAY, known_solutions);
+        break selected_part;
     }
 }
