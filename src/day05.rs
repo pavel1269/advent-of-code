@@ -7,6 +7,30 @@ pub fn get_part1_result() -> i64 {
     return id;
 }
 
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let parsed_boardpasses = parse_boardpasses(&input);
+    let id = get_correct_seat(&parsed_boardpasses);
+
+    return id;
+}
+
+fn get_correct_seat(boardpasses: &Vec<(u32, u8, u8)>) -> i64 {
+    let mut seats = boardpasses.iter().map(|pass| pass.0).collect::<Vec<u32>>();
+    seats.sort();
+
+    let mut last_seat = seats[0];
+    for seat in seats[1..].iter() {
+        if last_seat + 1 != *seat {
+            return (last_seat + 1) as i64;
+        }
+        
+        last_seat = *seat;
+    }
+
+    panic!("Seat not found");
+}
+
 fn get_highest_id_passport(boardpasses: &Vec<(u32, u8, u8)>) -> i64 {
     let mut highest_id: u32 = 0;
     for boardpass in boardpasses.iter() {
@@ -50,20 +74,20 @@ fn get_challenge_input() -> Vec<&'static str> {
     include_str!("./inputs/day05.txt").lines().collect()
 }
 
-const EXAMPLE_BOARDPASS: &'static str = "FBFBBFFRLR";
-
-fn get_example() -> Vec<&'static str> {
-    vec![
-        "BFFFBBFRRR",
-        "FFFBBBFRRR",
-        "BBFFBBFRLL",
-    ]
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const EXAMPLE_BOARDPASS: &'static str = "FBFBBFFRLR";
+
+    fn get_example() -> Vec<&'static str> {
+        vec![
+            "BFFFBBFRRR",
+            "FFFBBBFRRR",
+            "BBFFBBFRLL",
+        ]
+    }
+    
     #[test]
     fn single_example_parse_boardpass_correct() {
         let parsed_boardpass = parse_boardpass(EXAMPLE_BOARDPASS);
@@ -86,5 +110,14 @@ mod tests {
         let id = get_highest_id_passport(&parsed_boardpasses);
 
         assert_eq!(938, id);
+    }
+
+    #[test]
+    fn input_part2_correct() {
+        let input = get_challenge_input();
+        let parsed_boardpasses = parse_boardpasses(&input);
+        let id = get_correct_seat(&parsed_boardpasses);
+
+        assert_eq!(696, id);
     }
 }

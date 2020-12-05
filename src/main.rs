@@ -7,7 +7,7 @@ mod day05;
 
 // Define these two as of your liking to speed up "run"
 const DEFAULT_DAY: usize = 5;
-const DEFAULT_PART: usize = 1;
+const DEFAULT_PART: usize = 2;
 
 const MAX_PARTS: usize = 2;
 
@@ -44,7 +44,7 @@ fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 5] {
         ],
         [
             day05::get_part1_result,
-            get_not_implemented_solution,
+            day05::get_part2_result,
         ],
     ];
 
