@@ -44,7 +44,7 @@ fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 6] {
         ],
         [
             day06::get_part1_result,
-            get_not_implemented_solution,
+            day06::get_part2_result,
         ],
     ];
 
