@@ -2,9 +2,18 @@
 use std::collections::HashMap;
 use regex::Regex;
 
+const MY_LUGGAGE: &str = "shiny gold";
+
 pub fn get_part1_result() -> i64 {
     let input = get_challenge_input();
     let result = count_possible_colors_containers(&input);
+
+    return result;
+}
+
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let result = count_containers_inside(&input);
 
     return result;
 }
@@ -36,11 +45,30 @@ impl std::fmt::Debug for BagContent {
     }
 }
 
+fn count_containers_inside(input: &str) -> i64 {
+    let bags = parse_input(&input);
+
+    let mut queue: Vec<(String, i64)> = vec!((MY_LUGGAGE.to_string(), 1));
+    let mut count: i64 = -1;
+    while !queue.is_empty() {
+        let item = queue.pop().unwrap();
+        count += item.1;
+
+        let bag = &bags[&item.0];
+
+        for entry in bag.content.iter() {
+            queue.push((entry.color.clone(), item.1 * entry.quantity as i64))
+        }
+    }
+
+    return count;
+}
+
 fn count_possible_colors_containers(input: &str) -> i64 {
     let bags = parse_input(&input);
 
     let mut possibles: HashMap<String, bool> = HashMap::new();
-    let mut queue: Vec<String> = vec!("shiny gold".to_string());
+    let mut queue: Vec<String> = vec!(MY_LUGGAGE.to_string());
 
     while !queue.is_empty() {
         let color = queue.pop().unwrap();
@@ -131,5 +159,40 @@ striped gold bags contain 4 muted salmon bags, 1 bright yellow bag, 1 dark plum 
         let result = count_possible_colors_containers(&input);
 
         assert_eq!(246, result);
+    }
+
+    #[test]
+    fn example1_count_inside() {
+        let input = get_example_input();
+        let result = count_containers_inside(&input);
+
+        assert_eq!(32, result);
+    }
+
+    fn get_example2_input() -> &'static str {
+        "shiny gold bags contain 2 dark red bags.
+dark red bags contain 2 dark orange bags.
+dark orange bags contain 2 dark yellow bags.
+dark yellow bags contain 2 dark green bags.
+dark green bags contain 2 dark blue bags.
+dark blue bags contain 2 dark violet bags.
+dark violet bags contain no other bags.
+"
+    }
+
+    #[test]
+    fn example2_count_inside() {
+        let input = get_example2_input();
+        let result = count_containers_inside(&input);
+
+        assert_eq!(126, result);
+    }
+
+    #[test]
+    fn input_count_inside() {
+        let input = get_challenge_input();
+        let result = count_containers_inside(&input);
+
+        assert_eq!(2976, result);
     }
 }
