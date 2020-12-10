@@ -6,6 +6,45 @@ pub fn get_part1_result() -> i64 {
     return result;
 }
 
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let result = get_not_matching_source(&input, 21806024);
+
+    return result;
+}
+
+fn get_not_matching_source(numbers: &Vec<i64>, number: i64) -> i64 {
+    let position = numbers.iter().position(|&num| num == number).unwrap();
+    let mut sums: Vec<(i64, i64, i64)> = vec!();
+    for index in 0..position - 1 {
+        let current_number = numbers[index];
+        // println!("index: [{}] = {}", index, current_number);
+        if sums.len() > 0 {
+            for sum_index in 0..sums.len() {
+                let mut sum = &mut sums[sum_index];
+                sum.2 += current_number;
+
+                if sum.2 == number {
+                    // println!("Found! {} + {}", sum.0, sum.1);
+                    return sum.0 + sum.1;
+                }
+
+                if current_number > sum.0 {
+                    sum.0 = current_number;
+                }
+                if current_number < sum.1 {
+                    sum.1 = current_number;
+                }
+            }
+            sums.retain(|sum| sum.2 < number);
+        }
+        sums.push((current_number, current_number, current_number));
+        // println!("sums: {:?}", sums);
+    }
+
+    return -1;
+}
+
 fn get_not_matching(numbers: &Vec<i64>, preamble_size: usize) -> i64 {
     for index in preamble_size..numbers.len() {
         if !is_valid(numbers, preamble_size, index) {
@@ -110,5 +149,21 @@ mod tests {
         let result = get_not_matching(&input, 25);
 
         assert_eq!(21806024, result);
+    }
+
+    #[test]
+    fn example_not_matching_source() {
+        let input = get_example_input();
+        let result = get_not_matching_source(&input, 127);
+
+        assert_eq!(62, result);
+    }
+
+    #[test]
+    fn input_not_matching_source() {
+        let input = get_challenge_input();
+        let result = get_not_matching_source(&input, 21806024);
+
+        assert_eq!(2986195, result);
     }
 }
