@@ -1,7 +1,15 @@
 
 pub fn get_part1_result() -> i64 {
     let input = get_challenge_input();
-    let map = simulate_till_still(input);
+    let map = simulate_till_still(input, &get_part1_rules());
+    let result = count_occupied_seats(&map);
+
+    return result;
+}
+
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let map = simulate_till_still(input, &get_part2_rules());
     let result = count_occupied_seats(&map);
 
     return result;
@@ -15,6 +23,25 @@ enum Layout {
     Occupied,
 }
 
+struct Rules {
+    fn_occupied: fn (map: &Vec<Vec<Layout>>, row: i32, column: i32, height: usize, width: usize) -> u8,
+    full_tolerancy: u8,
+}
+
+fn get_part1_rules() -> Rules {
+    Rules {
+        fn_occupied: get_occupied_around,
+        full_tolerancy: 4,
+    }
+}
+
+fn get_part2_rules() -> Rules {
+    Rules {
+        fn_occupied: get_occupied_in_sight,
+        full_tolerancy: 5,
+    }
+}
+
 fn count_occupied_seats(map: &Vec<Vec<Layout>>) -> i64 {
     let mut occupied: i64 = 0;
     for occupants in map.iter().map(|row| row.iter().filter(|space| **space == Layout::Occupied).count()) {
@@ -24,7 +51,7 @@ fn count_occupied_seats(map: &Vec<Vec<Layout>>) -> i64 {
     return occupied;
 }
 
-fn simulate_till_still(input: &str) -> Vec<Vec<Layout>> {
+fn simulate_till_still(input: &str, rules: &Rules) -> Vec<Vec<Layout>> {
     let mut map_now = parse_input(input);
     let height = map_now.len();
     let width = map_now[0].len();
@@ -33,9 +60,9 @@ fn simulate_till_still(input: &str) -> Vec<Vec<Layout>> {
         let mut any_change = false;
         for row in 0..height {
             for column in 0..width {
-                let occupied = get_occupied_around(&map_now, row as i32, column as i32, height, width);
+                let occupied = (rules.fn_occupied)(&map_now, row as i32, column as i32, height, width);
                 if map_now[row][column] == Layout::Occupied {
-                    if occupied >= 4 {
+                    if occupied >= rules.full_tolerancy {
                         map_next[row][column] = Layout::Free;
                         any_change = true;
                     }
@@ -56,6 +83,41 @@ fn simulate_till_still(input: &str) -> Vec<Vec<Layout>> {
 
         map_now = map_next;
     }
+}
+
+fn get_occupied_in_sight(map: &Vec<Vec<Layout>>, row: i32, column: i32, height: usize, width: usize) -> u8 {
+    let mut occupied = 0;
+    for row_offset in -1..2 {
+        for column_offset in -1..2 {
+            if row_offset == 0 && column_offset == 0 {
+                continue;
+            }
+
+            let mut distance = 0;
+            loop {
+                distance += 1;
+
+                let row = row + row_offset * distance;
+                let column = column + column_offset * distance;
+    
+                if row < 0 || column < 0 || row >= height as i32 || column >= width as i32 {
+                    // println!("[{}][{}] out of map", column, row);
+                    break;
+                }
+
+                match map[row as usize][column as usize] {
+                    Layout::Occupied => {
+                        occupied += 1;
+                        break;
+                    },
+                    Layout::Free => break,
+                    Layout::Floor => continue,
+                }
+            }
+        }
+    }
+
+    return occupied;
 }
 
 fn get_occupied_around(map: &Vec<Vec<Layout>>, row: i32, column: i32, height: usize, width: usize) -> u8 {
@@ -180,7 +242,7 @@ L.LLLLL.LL"
     #[test]
     fn example_part1_result() {
         let input = get_example_input();
-        let map = simulate_till_still(input);
+        let map = simulate_till_still(input, &get_part1_rules());
         let result = count_occupied_seats(&map);
 
         assert_eq!(37, result);
@@ -191,5 +253,14 @@ L.LLLLL.LL"
         let result = get_part1_result();
 
         assert_eq!(2247, result);
+    }
+
+    #[test]
+    fn example_part2_result() {
+        let input = get_example_input();
+        let map = simulate_till_still(input, &get_part2_rules());
+        let result = count_occupied_seats(&map);
+
+        assert_eq!(26, result);
     }
 }
