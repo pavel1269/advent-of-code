@@ -9,6 +9,7 @@ mod day07;
 mod day08;
 mod day09;
 mod day10;
+mod day11;
 
 const MAX_PARTS: usize = 2;
 
@@ -24,8 +25,8 @@ fn main() {
     println!("Result: {}", result);
 }
 
-fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 10] {
-    let known_solutions: [[fn() -> i64; MAX_PARTS]; 10] = [
+fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 11] {
+    let known_solutions: [[fn() -> i64; MAX_PARTS]; 11] = [
         [
             day01::get_solution_part1,
             day01::get_solution_part2,
@@ -65,6 +66,10 @@ fn get_known_solutions() -> [[fn() -> i64; MAX_PARTS]; 10] {
         [
             day10::get_part1_result,
             day10::get_part2_result,
+        ],
+        [
+            day11::get_part1_result,
+            get_not_implemented_solution,
         ],
     ];
 
