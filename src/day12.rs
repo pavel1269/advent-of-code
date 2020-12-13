@@ -3,46 +3,115 @@ pub fn get_part1_result() -> i64 {
     let input = get_challenge_input();
     let ship = navigate_ship(input);
 
-    return ship.x as i64 + ship.y as i64;
+    return i64::abs(ship.coords.x as i64) + i64::abs(ship.coords.y as i64);
+}
+
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let ship = navigate_with_waypoint(input);
+
+    return i64::abs(ship.coords.x as i64) + i64::abs(ship.coords.y as i64);
+}
+
+fn navigate_with_waypoint(input: &str) -> Ship {
+    let commands = parse_commands(input);
+
+    let mut ship = Ship {
+        coords: Coords {
+            x: 0,
+            y: 0,
+        },
+        direction: Direction::East,
+    };
+    let mut waypoint= Coords {
+        x: 10,
+        y: -1,
+    };
+
+    for command in commands.iter() {
+        // println!("Ship: [{}][{}], Waypoint: [{}][{}] -> {:?}", ship.coords.x, ship.coords.y, waypoint.x, waypoint.y, command);
+        match command.direction {
+            CommandDirection::Direction(Direction::East) => {
+                waypoint.x += command.value;
+            }
+            CommandDirection::Direction(Direction::West) => {
+                waypoint.x -= command.value;
+            }
+            CommandDirection::Direction(Direction::North) => {
+                waypoint.y -= command.value;
+            }
+            CommandDirection::Direction(Direction::South) => {
+                waypoint.y += command.value;
+            }
+            CommandDirection::Forward => {
+                ship.coords.x += waypoint.x * command.value;
+                ship.coords.y += waypoint.y * command.value;
+            },
+            // [ 10,  -4] -> [  4,  10] -> [-10,   4] -> [ -4, -10] -> [ 10,  -4]
+            // [  a,   b] -> [ -b,   a]
+            //               [  c,   d] -> [ -d,   c]
+            //                             [  e,   f] -> [ -f,   e]
+            //                                           [  g,   h] -> [ -h,   g]
+            // [  x,   y] -> [ -y,   x]
+            // [  y,  -x] <- [  x,   y]
+            CommandDirection::Right => {
+                for _ in 0..command.value / 90 {
+                    let tmp = waypoint.clone();
+                    waypoint.x = -tmp.y;
+                    waypoint.y = tmp.x;
+                }
+            },
+            CommandDirection::Left => {
+                for _ in 0..command.value / 90 {
+                    let tmp = waypoint.clone();
+                    waypoint.x = tmp.y;
+                    waypoint.y = -tmp.x;
+                }
+            },
+        }
+    }
+
+    return ship;
 }
 
 fn navigate_ship(input: &str) -> Ship {
     let commands = parse_commands(input);
 
     let mut ship = Ship {
-        x: 0,
-        y: 0,
+        coords: Coords {
+            x: 0,
+            y: 0,
+        },
         direction: Direction::East,
     };
 
     for command in commands.iter() {
-        println!("[{}][{}]", ship.x, ship.y);
         match command.direction {
             CommandDirection::Direction(Direction::East) => {
-                ship.x += command.value;
+                ship.coords.x += command.value;
             }
             CommandDirection::Direction(Direction::West) => {
-                ship.x -= command.value;
+                ship.coords.x -= command.value;
             }
             CommandDirection::Direction(Direction::North) => {
-                ship.y -= command.value;
+                ship.coords.y -= command.value;
             }
             CommandDirection::Direction(Direction::South) => {
-                ship.y += command.value;
+                ship.coords.y += command.value;
             }
             CommandDirection::Forward => {
                 match ship.direction {
                     Direction::East => {
-                        ship.x += command.value;
+                        ship.coords.x += command.value;
                     },
                     Direction::West => {
-                        ship.x -= command.value;
+                        ship.coords.x -= command.value;
                     },
                     Direction::North => {
-                        ship.y -= command.value;
+                        ship.coords.y -= command.value;
                     },
                     Direction::South => {
-                        ship.y += command.value;
+                        ship.coords.y += command.value;
                     },
                 }
             },
@@ -88,12 +157,20 @@ fn navigate_ship(input: &str) -> Ship {
     return ship;
 }
 
-struct Ship {
+#[derive(PartialEq)]
+#[derive(Debug)]
+#[derive(Clone)]
+struct Coords {
     x: i32,
     y: i32,
+}
+
+struct Ship {
+    coords: Coords,
     direction: Direction,
 }
 
+#[derive(Debug)]
 enum Direction {
     East,
     North,
@@ -101,6 +178,7 @@ enum Direction {
     South,
 }
 
+#[derive(Debug)]
 enum CommandDirection {
     Direction(Direction),
     Forward,
@@ -108,6 +186,7 @@ enum CommandDirection {
     Left,
 }
 
+#[derive(Debug)]
 struct Command {
     direction: CommandDirection,
     value: i32,
@@ -162,7 +241,7 @@ F11
         let input = get_example_input();
         let ship = navigate_ship(input);
 
-        assert_eq!((17, 8), (ship.x, ship.y));
+        assert_eq!(Coords { x: 17, y: 8, }, ship.coords);
     }
 
     #[test]
@@ -170,5 +249,20 @@ F11
         let result = get_part1_result();
 
         assert_eq!(1631, result);
+    }
+
+    #[test]
+    fn example_navigate_ship_waypoint_coords_match() {
+        let input = get_example_input();
+        let ship = navigate_with_waypoint(input);
+
+        assert_eq!(Coords { x: 214, y: 72, }, ship.coords);
+    }
+
+    #[test]
+    fn input_part2_result() {
+        let result = get_part2_result();
+
+        assert_eq!(58606, result);
     }
 }
