@@ -11,6 +11,7 @@ mod day09;
 mod day10;
 mod day11;
 mod day12;
+mod day13;
 
 const MAX_PARTS: usize = 2;
 
@@ -75,6 +76,10 @@ fn get_known_solutions() -> Vec<[fn() -> i64; MAX_PARTS]> {
         [
             day12::get_part1_result,
             day12::get_part2_result,
+        ],
+        [
+            day13::get_part1_result,
+            get_not_implemented_solution,
         ],
     ];
 
