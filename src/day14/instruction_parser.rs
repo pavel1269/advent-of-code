@@ -70,6 +70,9 @@ fn parse_mask_instruction(parse_regexes: &ParseRegexes, line: &str) -> impl Inst
                 let mask_change = (1 as u64) << (len - index - 1);
                 instruction.mask_or |= mask_change;
             }
+            // x0x1
+            // & 1011, | 0001
+            // 1011 ^ 0001 = 1010
             'X' => continue,
             _ => panic!("Unexpected token"),
         };
