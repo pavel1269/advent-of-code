@@ -1,4 +1,3 @@
-
 mod day01;
 mod day02;
 mod day03;
@@ -12,9 +11,9 @@ mod day10;
 mod day11;
 mod day12;
 mod day13;
-#[path = "day14.rs"] mod day14;
-
-const MAX_PARTS: usize = 2;
+#[path = "day14.rs"]
+mod day14;
+mod day15;
 
 fn main() {
     let known_solutions = get_known_solutions();
@@ -28,64 +27,25 @@ fn main() {
     println!("Result: {}", result);
 }
 
+const MAX_PARTS: usize = 2;
+
 fn get_known_solutions() -> Vec<[fn() -> i64; MAX_PARTS]> {
     let known_solutions = vec![
-        [
-            day01::get_solution_part1,
-            day01::get_solution_part2,
-        ],
-        [
-            day02::get_solution_part1,
-            day02::get_solution_part2,
-        ],
-        [
-            day03::get_solution_part1,
-            day03::get_solution_part2,
-        ],
-        [
-            day04::get_solution_part1,
-            day04::get_solution_part2,
-        ],
-        [
-            day05::get_part1_result,
-            day05::get_part2_result,
-        ],
-        [
-            day06::get_part1_result,
-            day06::get_part2_result,
-        ],
-        [
-            day07::get_part1_result,
-            day07::get_part2_result,
-        ],
-        [
-            day08::get_part1_result,
-            day08::get_part2_result,
-        ],
-        [
-            day09::get_part1_result,
-            day09::get_part2_result,
-        ],
-        [
-            day10::get_part1_result,
-            day10::get_part2_result,
-        ],
-        [
-            day11::get_part1_result,
-            day11::get_part2_result,
-        ],
-        [
-            day12::get_part1_result,
-            day12::get_part2_result,
-        ],
-        [
-            day13::get_part1_result,
-            day13::get_part2_result,
-        ],
-        [
-            day14::get_part1_result,
-            day14::get_part2_result,
-        ],
+        [day01::get_solution_part1, day01::get_solution_part2],
+        [day02::get_solution_part1, day02::get_solution_part2],
+        [day03::get_solution_part1, day03::get_solution_part2],
+        [day04::get_solution_part1, day04::get_solution_part2],
+        [day05::get_part1_result, day05::get_part2_result],
+        [day06::get_part1_result, day06::get_part2_result],
+        [day07::get_part1_result, day07::get_part2_result],
+        [day08::get_part1_result, day08::get_part2_result],
+        [day09::get_part1_result, day09::get_part2_result],
+        [day10::get_part1_result, day10::get_part2_result],
+        [day11::get_part1_result, day11::get_part2_result],
+        [day12::get_part1_result, day12::get_part2_result],
+        [day13::get_part1_result, day13::get_part2_result],
+        [day14::get_part1_result, day14::get_part2_result],
+        [day15::get_part1_result, get_not_implemented_solution],
     ];
 
     return known_solutions;
@@ -110,7 +70,10 @@ fn read_user_selection(known_solutions: &[[fn() -> i64; MAX_PARTS]]) -> (usize, 
         println!();
         println!("Please enter solution day you are interested in.");
         println!("   - Day must be in range <{}, {}>", 1, max_day);
-        println!("   - Leave empty for default day '{}' part '{}'", max_day, default_part);
+        println!(
+            "   - Leave empty for default day '{}' part '{}'",
+            max_day, default_part
+        );
         print!("Enter day: ");
         std::io::stdout().flush().expect("Failed to flush stdout");
 
@@ -122,17 +85,20 @@ fn read_user_selection(known_solutions: &[[fn() -> i64; MAX_PARTS]]) -> (usize, 
         if input.trim().is_empty() {
             break (max_day, default_part);
         }
-    
+
         let selected_day: usize = match input.trim().parse() {
             Ok(num) => num,
             Err(error) => {
                 println!("Could not read input, {}", error);
                 continue;
-            },
+            }
         };
 
         if selected_day < 1 || selected_day > max_day {
-            println!("Day must be <{}, {}>, entered '{}'", 1, max_day, selected_day);
+            println!(
+                "Day must be <{}, {}>, entered '{}'",
+                1, max_day, selected_day
+            );
             continue;
         }
 
@@ -151,7 +117,7 @@ fn read_user_selection_for_part(selected_day: usize) -> usize {
         println!("   - Part must be in range <{}, {}>", 1, MAX_PARTS);
         print!("Enter part: ");
         std::io::stdout().flush().expect("Failed to flush stdout");
-        
+
         let mut input = String::new();
         std::io::stdin()
             .read_line(&mut input)
@@ -160,17 +126,20 @@ fn read_user_selection_for_part(selected_day: usize) -> usize {
         if input.trim().is_empty() {
             continue;
         }
-    
+
         let selected_part: usize = match input.trim().parse() {
             Ok(num) => num,
             Err(error) => {
                 println!("Could not read input, {}", error);
                 continue;
-            },
+            }
         };
 
         if selected_part < 1 || selected_part > 2 {
-            println!("Part must be <{}, {}>, entered '{}'", 1, MAX_PARTS, selected_part);
+            println!(
+                "Part must be <{}, {}>, entered '{}'",
+                1, MAX_PARTS, selected_part
+            );
             continue;
         }
 
