@@ -1,11 +1,17 @@
 
 pub fn get_part1_result() -> i64 {
     let input = get_challenge_input();
-    let result = play_memory_game(input);
+    let result = play_memory_game(input, 2020);
     return result;
 }
 
-fn play_memory_game(input: &str) -> i64 {
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let result = play_memory_game(input, 30000000);
+    return result;
+}
+
+fn play_memory_game(input: &str, iterations: usize) -> i64 {
     use std::collections::HashMap;
 
     let numbers_vec = parse_input(input);
@@ -15,7 +21,7 @@ fn play_memory_game(input: &str) -> i64 {
     }
 
     let mut last_number: i64 = *numbers_vec.last().unwrap();
-    for index in numbers.len()..2020 {
+    for index in numbers.len()..iterations {
         let entry = numbers[&last_number];
         // println!("Last number: {}, data: {:?}", last_number, entry);
         
@@ -57,7 +63,7 @@ mod tests {
     #[test]
     fn example_play_memory_game() {
         let input = "0,3,6";
-        let result = play_memory_game(input);
+        let result = play_memory_game(input, 2020);
 
         assert_eq!(436, result);
     }
@@ -65,7 +71,7 @@ mod tests {
     #[test]
     fn example2_play_memory_game() {
         let input = "1,3,2";
-        let result = play_memory_game(input);
+        let result = play_memory_game(input, 2020);
 
         assert_eq!(1, result);
     }
@@ -75,5 +81,12 @@ mod tests {
         let result = get_part1_result();
 
         assert_eq!(206, result);
+    }
+
+    #[test]
+    fn input_get_part2_result() {
+        let result = get_part2_result();
+
+        assert_eq!(955, result);
     }
 }
