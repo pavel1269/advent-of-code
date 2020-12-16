@@ -15,40 +15,34 @@ fn play_memory_game(input: &str, iterations: usize) -> i64 {
     use std::collections::HashMap;
 
     let numbers_vec = parse_input(input);
-    let mut numbers: HashMap<i64, (usize, Option<usize>)> = HashMap::new();
-    for (index, number) in numbers_vec.iter().enumerate() {
-        numbers.insert(*number, (index, None));
+    let mut numbers: HashMap<usize, usize> = HashMap::new();
+    for (index, number) in numbers_vec[..numbers_vec.len() - 1].iter().enumerate() {
+        numbers.insert(*number, index);
     }
 
-    let mut last_number: i64 = *numbers_vec.last().unwrap();
-    for index in numbers.len()..iterations {
-        let entry = &numbers[&last_number];
-        // println!("Last number: {}, data: {:?}", last_number, entry);
-        
-        last_number = match entry.1 {
-            Some(previous_number) => (entry.0 - previous_number) as i64,
-            None => 0,
-        };
+    let mut last_number: usize = *numbers_vec.last().unwrap();
+    for index in numbers.len()..iterations - 1 {
+        // println!("{} Last number: {},  data: {:?}", index, last_number, numbers.get(&last_number));
 
         match numbers.get(&last_number) {
-            Some(number_entry) => {
-                let last_index = number_entry.0;
-                numbers.insert(last_number, (index, Some(last_index)));
-            },
             None => {
-                numbers.insert(last_number, (index, None));
+                numbers.insert(last_number, index);
+                last_number = 0;
+            },
+            Some(last_index) => {
+                let result = index - last_index;
+                numbers.insert(last_number, index);
+                last_number = result;
             },
         }
-
-        // println!("{} New last number: {},  data: {:?}", index, last_number, numbers[&last_number]);
     }
 
     // println!("{:?}", numbers);
-    return last_number;
+    return last_number as i64;
 }
 
-fn parse_input(input: &str) -> Vec<i64> {
-    input.split(",").map(|entry| entry.parse::<i64>().unwrap()).collect()
+fn parse_input(input: &str) -> Vec<usize> {
+    input.split(",").map(|entry| entry.parse::<usize>().unwrap()).collect()
 }
 
 fn get_challenge_input() -> &'static str {
