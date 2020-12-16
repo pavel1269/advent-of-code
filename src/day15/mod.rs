@@ -15,29 +15,28 @@ fn play_memory_game(input: &str, iterations: usize) -> i64 {
     use std::collections::HashMap;
 
     let numbers_vec = parse_input(input);
-    let mut numbers: HashMap<i64, (usize, Result<usize, ()>)> = HashMap::new();
+    let mut numbers: HashMap<i64, (usize, Option<usize>)> = HashMap::new();
     for (index, number) in numbers_vec.iter().enumerate() {
-        numbers.insert(*number, (index, Err(())));
+        numbers.insert(*number, (index, None));
     }
 
     let mut last_number: i64 = *numbers_vec.last().unwrap();
     for index in numbers.len()..iterations {
-        let entry = numbers[&last_number];
+        let entry = &numbers[&last_number];
         // println!("Last number: {}, data: {:?}", last_number, entry);
         
-        if entry.1.is_ok() {
-            last_number = (entry.0 - entry.1.unwrap()) as i64;
-        } else {
-            last_number = 0;
-        }
-        
+        last_number = match entry.1 {
+            Some(previous_number) => (entry.0 - previous_number) as i64,
+            None => 0,
+        };
+
         match numbers.get(&last_number) {
             Some(number_entry) => {
                 let last_index = number_entry.0;
-                numbers.insert(last_number, (index, Ok(last_index)));
+                numbers.insert(last_number, (index, Some(last_index)));
             },
             None => {
-                numbers.insert(last_number, (index, Err(())));
+                numbers.insert(last_number, (index, None));
             },
         }
 
@@ -85,6 +84,7 @@ mod tests {
 
     #[test]
     fn input_get_part2_result() {
+        time_test::time_test!();
         let result = get_part2_result();
 
         assert_eq!(955, result);
