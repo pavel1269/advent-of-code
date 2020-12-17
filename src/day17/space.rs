@@ -51,80 +51,34 @@ impl Space {
     }
 
     fn expand_if_needed(&mut self, expand: &Vec<(bool, bool)>) {
-        // self.expand_x_if_needed(expand_x);
-        // self.expand_y_if_needed(expand_y);
-        // self.expand_z_if_needed(expand_z);
+        print!("{:?}", expand);
+        let mut new_coordinates = self.coordinates.clone();
+        for (dimension, expand) in expand.iter().enumerate() {
+            if expand.0 {
+                *new_coordinates.index_mut(dimension) += 1;
+            }
+            if expand.1 {
+                *new_coordinates.index_mut(dimension) += 1;
+            }
+        }
+
+        let mut new_dimensions = Space::create_dimensions_coordinates(&new_coordinates);
+        for index in 0..self.dimensions.len() {
+            let mut coords = Coordinates::from_index(index, &self.coordinates);
+
+            for (dimension, expand) in expand.iter().enumerate() {
+                if expand.0 {
+                    *coords.index_mut(dimension) += 1;
+                }
+            }
+
+            let new_index = coords.to_index(&new_coordinates);
+            new_dimensions[new_index] = self.dimensions[index];
+        }
+
+        self.dimensions = new_dimensions;
+        self.coordinates = new_coordinates;
     }
-
-    // fn expand_x_if_needed(&mut self, expand_x: &(bool, bool)) {
-    //     if expand_x.0 {
-    //         for index_z in 0..self.coordinates.z {
-    //             for index_y in 0..self.coordinates.y {
-    //                 let mut dimension_x_new: Vec<bool> = Vec::with_capacity(self.coordinates.x + 1);
-    //                 dimension_x_new.push(false);
-    //                 dimension_x_new.append(&mut self.dimensions[index_z][index_y]);
-    //                 self.dimensions[index_z][index_y] = dimension_x_new;
-    //             }
-    //         }
-
-    //         self.coordinates.x += 1;
-    //     }
-
-    //     if expand_x.1 {
-    //         for index_z in 0..self.coordinates.z {
-    //             for index_y in 0..self.coordinates.y {
-    //                 self.dimensions[index_z][index_y].push(false);
-    //             }
-    //         }
-    //         self.coordinates.x += 1;
-    //     }
-    // }
-
-    // fn expand_y_if_needed(&mut self, expand_y: &(bool, bool)) {
-    //     if expand_y.0 {
-    //         for index_z in 0..self.coordinates.z {
-    //             let mut dimension_xy_new: Vec<Vec<bool>> =
-    //                 Vec::with_capacity(self.coordinates.y + 1);
-    //             dimension_xy_new.push(Space::create_x_dimensions(self.coordinates.x));
-    //             dimension_xy_new.append(&mut self.dimensions[index_z]);
-    //             self.dimensions[index_z] = dimension_xy_new;
-    //         }
-    //         self.coordinates.y += 1;
-    //     }
-
-    //     if expand_y.1 {
-    //         for index_z in 0..self.coordinates.z {
-    //             self.dimensions[index_z].push(Space::create_x_dimensions(self.coordinates.x));
-    //         }
-    //         self.coordinates.y += 1;
-    //     }
-
-    //     debug_assert_eq!(self.coordinates.y, self.dimensions[0].len());
-    // }
-
-    // fn expand_z_if_needed(&mut self, expand_z: &(bool, bool)) {
-    //     if expand_z.0 {
-    //         let mut dimensions_new: Vec<Vec<Vec<bool>>> =
-    //             Vec::with_capacity(self.coordinates.z + 1);
-    //         dimensions_new.push(Space::create_xy_dimensions(
-    //             self.coordinates.x,
-    //             self.coordinates.y,
-    //         ));
-    //         dimensions_new.append(&mut self.dimensions);
-    //         self.dimensions = dimensions_new;
-    //         self.coordinates.z += 1;
-    //     }
-
-    //     if expand_z.1 {
-    //         self.dimensions.push(Space::create_xy_dimensions(
-    //             self.coordinates.x,
-    //             self.coordinates.y,
-    //         ));
-    //         self.coordinates.z += 1;
-    //     }
-
-    //     debug_assert_eq!(self.coordinates.z, self.dimensions.len());
-    // }
 
     fn count_active_surrounding(&self, location: &Coordinates) -> usize {
         let combinations = usize::pow(3, self.dimension_count as u32);
@@ -399,6 +353,51 @@ mod tests {
         space.simlate_cycle();
 
         assert_eq!(Coordinates::from(&vec![5, 6, 5]), space.coordinates);
+    }
+
+    #[test]
+    fn example_parsed_simlate_cycle_slive_matches() {
+        let input = get_example_input();
+        let mut space = Space::from_input(input, 3);
+
+        space.simlate_cycle();
+
+        assert_eq!(vec![
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+            
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false,  true, false, false, false,
+            false, false, false,  true, false,
+            false, false,  true, false, false,
+            false, false, false, false, false,
+            
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false,  true, false,  true, false,
+            false, false,  true,  true, false,
+            false, false,  true, false, false,
+            false, false, false, false, false,
+            
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false,  true, false, false, false,
+            false, false, false,  true, false,
+            false, false,  true, false, false,
+            false, false, false, false, false,
+            
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+            false, false, false, false, false,
+        ], space.dimensions);
     }
 
     #[test]
