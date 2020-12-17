@@ -8,7 +8,7 @@ pub struct Space {
 }
 
 impl Space {
-    pub fn simlate_cycle(&mut self) {
+    pub fn simulate_cycle(&mut self) {
         let mut expand = vec![(false, false); self.dimension_count];
         let mut dimensions_new = Self::create_dimensions_coordinates(&self.coordinates);
 
@@ -51,7 +51,7 @@ impl Space {
     }
 
     fn expand_if_needed(&mut self, expand: &Vec<(bool, bool)>) {
-        print!("{:?}", expand);
+        // print!("{:?}", expand);
         let mut new_coordinates = self.coordinates.clone();
         for (dimension, expand) in expand.iter().enumerate() {
             if expand.0 {
@@ -129,28 +129,6 @@ impl Space {
             }
         }
         return sum;
-    }
-
-    #[allow(dead_code)]
-    pub fn print(&self) {
-        println!("{:?}", self.coordinates);
-
-        let mut line = String::new();
-        let mut abstract_indexes = vec![0; self.dimension_count - 2];
-        for (index, item) in self.dimensions.iter().enumerate() {
-            if index > 0 && index % *self.coordinates.index(1) == 0 {
-                println!("{}: {}", index, line);
-            }
-            if index % *self.coordinates.index(0) == 0 {
-                line.clear();
-            }
-            if *item {
-                line.push('#');
-            } else {
-                line.push('.');
-            }
-        }
-        println!("_: {}", line);
     }
 
     pub fn from_input(input: &str, dimensions: usize) -> Space {
@@ -335,32 +313,32 @@ mod tests {
     }
 
     #[test]
-    fn example_parsed_simlate_cycle_count_actives() {
+    fn example_parsed_simulate_cycle_count_actives() {
         let input = get_example_input();
         let mut space = Space::from_input(input, 3);
 
-        space.simlate_cycle();
+        space.simulate_cycle();
         let result = space.count_actives();
 
         assert_eq!(11, result);
     }
 
     #[test]
-    fn example_parsed_simlate_cycle_grew() {
+    fn example_parsed_simulate_cycle_grew() {
         let input = get_example_input();
         let mut space = Space::from_input(input, 3);
 
-        space.simlate_cycle();
+        space.simulate_cycle();
 
         assert_eq!(Coordinates::from(&vec![5, 6, 5]), space.coordinates);
     }
 
     #[test]
-    fn example_parsed_simlate_cycle_slive_matches() {
+    fn example_parsed_simulate_cycle_matches() {
         let input = get_example_input();
         let mut space = Space::from_input(input, 3);
 
-        space.simlate_cycle();
+        space.simulate_cycle();
 
         assert_eq!(vec![
             false, false, false, false, false,
@@ -401,25 +379,40 @@ mod tests {
     }
 
     #[test]
-    fn example_parsed_simlate_cycle2_count_actives() {
+    fn example_parsed_simulate_cycle2_count_actives() {
         let input = get_example_input();
         let mut space = Space::from_input(input, 3);
 
-        space.simlate_cycle();
-        space.simlate_cycle();
+        space.simulate_cycle();
+        space.simulate_cycle();
         let result = space.count_actives();
 
         assert_eq!(21, result);
     }
 
     #[test]
-    fn example_parsed_simlate_cycle2_grew() {
+    fn example_parsed_simulate_cycle2_grew() {
         let input = get_example_input();
         let mut space = Space::from_input(input, 3);
 
-        space.simlate_cycle();
-        space.simlate_cycle();
+        space.simulate_cycle();
+        space.simulate_cycle();
 
         assert_eq!(Coordinates::from(&vec![7, 7, 7]), space.coordinates);
+    }
+
+    mod dimension4 {
+        use super::*;
+
+        #[test]
+        fn example_simulate_cycle_count_actives() {
+            let input = get_example_input();
+            let mut space = Space::from_input(input, 4);
+
+            space.simulate_cycle();
+            let result = space.count_actives();
+
+            assert_eq!(29, result);
+        }
     }
 }

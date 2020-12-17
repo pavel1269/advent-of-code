@@ -9,11 +9,17 @@ pub fn get_part1_result() -> i64 {
     return result as i64;
 }
 
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let result = simulate_times(input, 4, 6);
+    return result as i64;
+}
+
 fn simulate_times(input: &str, dimensions: usize, times: usize) -> i64 {
     let mut space = Space::from_input(input, dimensions);
 
     for _ in 0..times {
-        space.simlate_cycle();
+        space.simulate_cycle();
     }
 
     let result = space.count_actives();
@@ -55,5 +61,21 @@ mod tests {
         let result = get_part1_result();
 
         assert_eq!(388, result);
+    }
+
+    #[test]
+    fn example_get_part2_result() {
+        let input = get_example_input();
+        let result = simulate_times(input, 4, 6);
+
+        assert_eq!(848, result);
+    }
+
+    #[test]
+    fn input_get_part2_result() {
+        time_test::time_test!();
+        let result = get_part2_result();
+
+        assert_eq!(2280, result);
     }
 }
