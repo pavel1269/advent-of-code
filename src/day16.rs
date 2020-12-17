@@ -231,7 +231,7 @@ fn parse_restrictions(input: &str) -> Vec<Restriction> {
 }
 
 fn get_challenge_input() -> &'static str {
-    include_str!("input.txt")
+    include_str!("inputs/day16.txt")
 }
 
 #[cfg(test)]
