@@ -12,6 +12,19 @@ pub fn evaluate_eq(input: &str) -> i64 {
         println!("[{}] {:?}", index, &eq);
         let token = eq[index];
         match token {
+            Token::ParenthesisOpen => {
+                let token3 = eq.get(index + 2).cloned().unwrap();
+                if token3 == Token::ParenthesisClose {
+                    eq.remove(index);
+                    eq.remove(index + 1);
+                    index -= 2;
+                    continue;
+                } else if token3.is_operation() {
+                    index += 1;
+                    continue;
+                }
+                panic!();
+            },
             Token::Number(operand1) => {
                 let operation = eq.get(index + 1).cloned().unwrap();
                 if operation == Token::ParenthesisClose {
@@ -50,10 +63,6 @@ pub fn evaluate_eq(input: &str) -> i64 {
     return eq[0].unwrap() as i64;
 }
 
-fn solve_partial_eq() {
-
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -77,6 +86,6 @@ mod tests {
     fn example2_evaluate_eq() {
         let input = get_example2_eq();
         let result = evaluate_eq(input);
-        assert_eq!(0, result);
+        assert_eq!(26, result);
     }
 }
