@@ -1,6 +1,6 @@
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Token {
-    Number(i32),
+    Number(i64),
     OperationPlus,
     OperationMultiply,
     ParenthesisOpen,
@@ -9,11 +9,10 @@ pub enum Token {
 
 impl Token {
     pub fn is_operation(&self) -> bool {
-        self == &Token::OperationMultiply
-            || self == &Token::OperationPlus
+        self == &Token::OperationMultiply || self == &Token::OperationPlus
     }
 
-    pub fn unwrap(&self) -> i32 {
+    pub fn unwrap(&self) -> i64 {
         match self {
             Token::Number(number) => *number,
             _ => panic!("Could not unwrap anything but a nubmer"),
@@ -29,7 +28,7 @@ enum ParserState {
 pub fn parse_eq(input: &str) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
     let mut state = ParserState::Default;
-    let mut buf: i32 = 0;
+    let mut buf: i64 = 0;
 
     let char_array = input.chars().collect::<Vec<char>>();
     let index_max = char_array.len();
@@ -40,7 +39,7 @@ pub fn parse_eq(input: &str) -> Vec<Token> {
             ParserState::Number => {
                 if char.is_numeric() {
                     buf *= 10;
-                    buf += char.to_digit(10).unwrap() as i32;
+                    buf += char.to_digit(10).unwrap() as i64;
                     index += 1;
                 } else {
                     tokens.push(Token::Number(buf));
@@ -51,14 +50,14 @@ pub fn parse_eq(input: &str) -> Vec<Token> {
             ParserState::Default => {
                 if char.is_numeric() {
                     state = ParserState::Number;
-                    buf += char.to_digit(10).unwrap() as i32;
+                    buf += char.to_digit(10).unwrap() as i64;
                 } else {
                     match char {
                         '(' => tokens.push(Token::ParenthesisOpen),
                         ')' => tokens.push(Token::ParenthesisClose),
                         '+' => tokens.push(Token::OperationPlus),
                         '*' => tokens.push(Token::OperationMultiply),
-                        ' ' => {}
+                        ' ' => {},
                         _ => panic!(format!("Unexpected char '{}'", char)),
                     }
                 }
