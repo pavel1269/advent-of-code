@@ -1,6 +1,6 @@
 
-pub mod coordinates;
-pub mod space;
+mod coordinates;
+mod space;
 use space::*;
 
 pub fn get_part1_result() -> i64 {
