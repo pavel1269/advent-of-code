@@ -1,14 +1,14 @@
 use super::parser::*;
 
-pub fn evaluate_eq_sum(input: &str) -> i64 {
+pub fn evaluate_eq_sum(input: &str, plus_precedence: bool) -> i64 {
     let mut sum: i64 = 0;
     for line in input.lines() {
-        sum += evaluate_eq(line.trim());
+        sum += evaluate_eq(line.trim(), plus_precedence);
     }
     return sum;
 }
 
-fn evaluate_eq(input: &str) -> i64 {
+fn evaluate_eq(input: &str, plus_precedence: bool) -> i64 {
     let mut eq = parse_eq(input);
 
     let mut index: usize = 0;
@@ -55,6 +55,14 @@ fn evaluate_eq(input: &str) -> i64 {
                     continue;
                 }
 
+                if plus_precedence && operation == Token::OperationMultiply && index + 3 < eq.len() {
+                    let token4 = eq[index + 3];
+                    if token4 == Token::OperationPlus {
+                        index += 2;
+                        continue;
+                    }
+                }
+
                 eq.remove(index);
                 eq.remove(index);
                 eq.remove(index);
@@ -88,8 +96,15 @@ mod tests {
     #[test]
     fn example_evaluate_eq() {
         let input = get_example_eq();
-        let result = evaluate_eq(input);
+        let result = evaluate_eq(input, false);
         assert_eq!(71, result);
+    }
+
+    #[test]
+    fn example_evaluate_eq_plus_precedence() {
+        let input = get_example_eq();
+        let result = evaluate_eq(input, true);
+        assert_eq!(231, result);
     }
 
     fn get_example2_eq() -> &'static str {
@@ -99,8 +114,15 @@ mod tests {
     #[test]
     fn example2_evaluate_eq() {
         let input = get_example2_eq();
-        let result = evaluate_eq(input);
+        let result = evaluate_eq(input, false);
         assert_eq!(26, result);
+    }
+
+    #[test]
+    fn example2_evaluate_eq_plus_precedence() {
+        let input = get_example2_eq();
+        let result = evaluate_eq(input, true);
+        assert_eq!(46, result);
     }
 
     fn get_example3_eq() -> &'static str {
@@ -110,7 +132,14 @@ mod tests {
     #[test]
     fn example3_evaluate_eq() {
         let input = get_example3_eq();
-        let result = evaluate_eq(input);
+        let result = evaluate_eq(input, false);
+        assert_eq!(51, result);
+    }
+
+    #[test]
+    fn example3_evaluate_eq_plus_precedence() {
+        let input = get_example3_eq();
+        let result = evaluate_eq(input, true);
         assert_eq!(51, result);
     }
 
@@ -121,8 +150,15 @@ mod tests {
     #[test]
     fn example4_evaluate_eq() {
         let input = get_example4_eq();
-        let result = evaluate_eq(input);
+        let result = evaluate_eq(input, false);
         assert_eq!(437, result);
+    }
+
+    #[test]
+    fn example4_evaluate_eq_plus_precedence() {
+        let input = get_example4_eq();
+        let result = evaluate_eq(input, true);
+        assert_eq!(1445, result);
     }
 
     fn get_example5_eq() -> &'static str {
@@ -132,12 +168,20 @@ mod tests {
     #[test]
     fn example5_evaluate_eq() {
         let input = get_example5_eq();
-        let result = evaluate_eq(input);
+        let result = evaluate_eq(input, false);
         assert_eq!(12240, result);
+    }
+
+    #[test]
+    fn example5_evaluate_eq_plus_precedence() {
+        let input = get_example5_eq();
+        let result = evaluate_eq(input, true);
+        assert_eq!(669060, result);
     }
 
     fn get_example6_eq() -> &'static str {
         "((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2"
+        // normal
         // 1 - 6 * 9 ...
         // 2 - 54 * ...
         // 3 - 54 * (15 * 8 + 6) ...
@@ -153,8 +197,15 @@ mod tests {
     #[test]
     fn example6_evaluate_eq() {
         let input = get_example6_eq();
-        let result = evaluate_eq(input);
+        let result = evaluate_eq(input, false);
         assert_eq!(13632, result);
+    }
+
+    #[test]
+    fn example6_evaluate_eq_plus_precedence() {
+        let input = get_example6_eq();
+        let result = evaluate_eq(input, true);
+        assert_eq!(23340, result);
     }
 
     #[test]
@@ -166,7 +217,7 @@ mod tests {
             get_example3_eq(),
             get_example_eq(),
         );
-        let result = evaluate_eq_sum(input.as_str());
+        let result = evaluate_eq_sum(input.as_str(), false);
         assert_eq!(71 + 26 + 51 + 71, result);
     }
 }
