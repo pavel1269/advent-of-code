@@ -1,10 +1,24 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Token {
     Number(i32),
     OperationPlus,
     OperationMultiply,
     ParenthesisOpen,
     ParenthesisClose,
+}
+
+impl Token {
+    pub fn is_operation(&self) -> bool {
+        self == &Token::OperationMultiply
+            || self == &Token::OperationPlus
+    }
+
+    pub fn unwrap(&self) -> i32 {
+        match self {
+            Token::Number(number) => *number,
+            _ => panic!("Could not unwrap anything but a nubmer"),
+        }
+    }
 }
 
 enum ParserState {
