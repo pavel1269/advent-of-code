@@ -3,13 +3,30 @@ use std::collections::HashMap;
 
 pub fn get_part1_result() -> i64 {
     let input = get_challenge_input();
-    let result = count_matches(input);
+    let result = count_matches(input, false);
 
     return result;
 }
 
-fn count_matches(input: &str) -> i64 {
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let result = count_matches(input, true);
+
+    return result;
+}
+
+fn modify_rules_loop(rules: &mut HashMap<usize, Rule>) {
+    // 8: 42 | 42 8
+    // 11: 42 31 | 42 11 31
+    rules.insert(8, Rule::RuleGroups(vec![vec![42], vec![42, 8]]));
+    rules.insert(11, Rule::RuleGroups(vec![vec![42, 31], vec![42, 11, 31]]));
+}
+
+fn count_matches(input: &str, include_loop: bool) -> i64 {
     let mut input = parse_input(input);
+    if include_loop {
+        modify_rules_loop(&mut input.rules);
+    }
     let regex = build_regex(&mut input.rules);
     let regex = Regex::new(regex.as_str()).unwrap();
 
@@ -35,25 +52,25 @@ fn build_regex(rules: &mut HashMap<usize, Rule>) -> String {
     while rules_to_rework.len() > 0 {
         // println!("{:?}", rules);
         let mut solved_rules: Vec<usize> = Vec::new();
-        for (index, rule) in rules_to_rework.iter().enumerate() {
-            if rule.1.is_string() {
+        for (index_rework, (index_rule, rule)) in rules_to_rework.iter().enumerate() {
+            if rule.is_string() {
                 continue;
             }
 
             let mut all_string = true;
-            for group in rule.1.get_groups() {
+            for group in rule.get_groups() {
                 if !all_string {
                     break;
                 }
-                for rule in group {
-                    match rules.get(rule) {
-                        Some(rule) => {
-                            if !rule.is_string() {
+                for index_rule in group {
+                    match rules.get(index_rule) {
+                        Some(sub_rule) => {
+                            if rule != sub_rule && !sub_rule.is_string() {
                                 all_string = false;
                                 break;
                             }
-                        },
-                        None => panic!(format!("Rule {} not found", rule)),
+                        }
+                        None => panic!(format!("Rule {} not found", index_rule)),
                     }
                 }
             }
@@ -63,24 +80,66 @@ fn build_regex(rules: &mut HashMap<usize, Rule>) -> String {
             }
 
             let mut groups: Vec<String> = Vec::new();
-            for group in rule.1.get_groups() {
+            for group in rule.get_groups() {
                 let mut string_rule: String = String::with_capacity(group.len());
-                for rule in group {
-                    string_rule.push_str(rules[rule].get_string());
+                let mut used_groups = false;
+                let mut string_rule_part: String = String::new();
+                for index_sub_rule in group {
+                    if index_sub_rule == index_rule {
+                        if used_groups {
+                            panic!();
+                        }
+                        used_groups = true;
+                        string_rule_part = string_rule.clone();
+                        string_rule.clear();
+                    } else {
+                        string_rule.push_str(rules[index_sub_rule].get_string());
+                    }
                 }
+
+                if used_groups {
+                    if string_rule.len() == 0 {
+                        debug_assert!(string_rule_part.len() > 0);
+                        string_rule = format!("({})+", string_rule_part);
+                    } else if string_rule.len() > 0 && string_rule_part.len() > 0 {
+                        let mut string_rule_parts: Vec<String> = vec![];
+                        for times in 1..5 {
+                            let mut immediate_part = String::new();
+                            for _ in 0..times {
+                                immediate_part.push_str(string_rule_part.as_str());
+                            }
+                            for _ in 0..times {
+                                immediate_part.push_str(string_rule.as_str());
+                            }
+                            string_rule_parts.push(immediate_part);
+                        }
+                        string_rule = format!("({})", string_rule_parts.join("|"));
+                    } else {
+                        panic!();
+                    }
+                }
+
                 groups.push(string_rule);
             }
 
-            let mut string_rule = String::from("(");
-            string_rule.push_str(groups.join("|").as_str());
-            string_rule.push(')');
-            solved_rules.push(index);
+            let string_rule = if groups.len() > 1 {
+                let mut string_rule = String::from("(");
+                string_rule.push_str(groups.join("|").as_str());
+                string_rule.push(')');
+                string_rule
+            } else {
+                groups.first().cloned().unwrap()
+            };
+            rules.insert(*index_rule, Rule::String(string_rule));
+            solved_rules.push(index_rework);
             // println!("reworked rule {} / {}", index, rules_to_rework.len());
-            rules.insert(rule.0, Rule::String(string_rule));
         }
 
         if solved_rules.len() == 0 {
-            panic!(format!("Not all rules solved, rules: {:?}", rules_to_rework));
+            panic!(format!(
+                "Not all rules solved, rules: {:?}",
+                rules_to_rework
+            ));
         }
 
         for index in solved_rules.iter().rev() {
@@ -104,7 +163,7 @@ struct Input {
     inputs: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Rule {
     String(String),
     RuleGroups(Vec<Vec<usize>>),
@@ -184,10 +243,14 @@ mod tests {
         include_str!("example.txt")
     }
 
+    fn get_example2_input() -> &'static str {
+        include_str!("example2.txt")
+    }
+
     #[test]
     fn example_count_matches() {
         let input = get_example_input();
-        let result = count_matches(input);
+        let result = count_matches(input, false);
 
         assert_eq!(2, result);
     }
@@ -197,7 +260,7 @@ mod tests {
         let input = get_challenge_input();
         let result = parse_input(input);
 
-        assert_eq!(133, result.rules.len(), "{:?}",  result.rules.keys());
+        assert_eq!(133, result.rules.len(), "{:?}", result.rules.keys());
     }
 
     #[test]
@@ -213,5 +276,21 @@ mod tests {
         let result = get_part1_result();
 
         assert_eq!(203, result);
+    }
+
+    #[test]
+    fn example2_count_matches() {
+        let input = get_example2_input();
+        let result = count_matches(input, false);
+
+        assert_eq!(3, result);
+    }
+
+    #[test]
+    fn example2_count_matches_with_loop() {
+        let input = get_example2_input();
+        let result = count_matches(input, true);
+
+        assert_eq!(12, result);
     }
 }
