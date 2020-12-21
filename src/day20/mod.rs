@@ -1,12 +1,16 @@
 mod directions;
+mod map_connector;
 mod parser;
+mod map_tile;
+use map_connector::*;
 use parser::*;
 
 pub fn get_part1_result() -> i64 {
     let _ = get_challenge_input();
     let input = get_example_input();
-    let map = parse_input(input);
-    println!("{:?}", map);
+    let mut map = parse_input(input);
+    connect_map(&mut map);
+    // println!("{:?}", map);
     return -1;
 }
 
