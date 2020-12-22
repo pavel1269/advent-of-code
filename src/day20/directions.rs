@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Directions {
     Up,
     Right,
@@ -17,12 +17,7 @@ impl Directions {
     }
 
     pub fn match_offset(&self) -> usize {
-        match self {
-            Self::Up => 2,
-            Self::Right => 1,
-            Self::Down => 2,
-            Self::Left => 3,
-        }
+        self.index() + 2
     }
 
     pub fn count() -> usize {

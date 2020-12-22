@@ -1,41 +1,118 @@
+#[path = "map_tile.determine_map_change.tests.rs"]
+#[cfg(test)]
+mod tests;
 use super::directions::*;
 
 #[derive(Debug)]
 pub struct MapTile {
     pub id: i64,
-    map: String,
+    pub map: String,
     pub edges: [(String, String); 4],
     // Clockwise roration
-    pub rotated_times: usize,
-    pub mirrored: bool,
+    // pub rotated_times: usize,
 }
 
 impl MapTile {
-    pub fn edge(&self, direction: Directions, mirrored: bool) -> &String {
-        println!("Asking for '{:?}' and mirrored: {}", direction, mirrored);
-        let direction = (direction.index() + self.rotated_times) % Directions::count();
+    pub fn edge(&self, direction: Directions) -> &String {
+        // println!("Asking for '{:?}', all edges: {:?}", direction, &self.edges);
+        let direction = direction.index();
         let edges = &self.edges[direction];
-        if mirrored ^ self.mirrored {
-            println!("Returning index '{}' and mirrored: true", direction);
-            return &edges.1;
-        } else {
-            println!("Returning index '{}' and mirrored: false", direction);
-            return &edges.0;
-        }
+        return &edges.0;
     }
 
-    pub fn set_match_way(&mut self, other_mirrored: bool, other_rotated_times: usize, edge_index: usize, matches_mirrored: bool, search_direction: Directions) {
-        // a = other_mirrored
-        // b = matches_mirrored
-        // f = new mirrored
-        // a b f
-        // 0 0 0
-        // 0 1 1
-        // 1 0 1
-        // 1 1 0
-        self.mirrored = other_mirrored ^ matches_mirrored;
-        self.rotated_times = (other_rotated_times + edge_index + search_direction.match_offset()) % Directions::count();
-        println!("[{}] Set rotated to {} ({} + {} + {}), mirrored {}", self.id, self.rotated_times, other_rotated_times, edge_index, search_direction.match_offset(), self.mirrored);
+    pub fn set_match_way(
+        &mut self,
+        edge_index: usize,
+        matches_mirrored: bool,
+        search_direction: Directions,
+    ) {
+        let (rotate_times, mirror_x, mirror_y) =
+            Self::determine_map_change(edge_index, matches_mirrored, search_direction);
+        println!(
+            "[{}] Set rotated to {}, mirroring x: {} y: {} ({}, {}, {:?})",
+            self.id,
+            rotate_times,
+            mirror_x,
+            mirror_y,
+            edge_index,
+            matches_mirrored,
+            search_direction,
+        );
+        let new_map = self.rotated_map(rotate_times, mirror_x, mirror_y);
+        *self = Self::from(self.id, new_map.as_str());
+    }
+
+    fn determine_map_change(
+        edge_index: usize,
+        matches_mirrored: bool,
+        search_direction: Directions,
+    ) -> (usize, bool, bool) {
+        let rotate_times = (Directions::count() + search_direction.match_offset() - edge_index) % Directions::count();
+        let mirror_x = !matches_mirrored
+            && (search_direction == Directions::Up || search_direction == Directions::Down);
+        let mirror_y = !matches_mirrored
+            && (search_direction == Directions::Left || search_direction == Directions::Right);
+
+        return (rotate_times, mirror_x, mirror_y);
+    }
+
+    fn rotated_map(&self, rotate_times: usize, mirror_x: bool, mirror_y: bool) -> String {
+        let result = if rotate_times == 0 {
+            self.map.clone()
+        } else if rotate_times == 2 {
+            self.map
+                .lines()
+                .rev()
+                .collect::<Vec<&str>>()
+                .iter()
+                .map(|line| line.chars().rev().collect::<String>())
+                .collect::<Vec<String>>()
+                .join("\n")
+        } else {
+            let map_rows = if rotate_times == 3 {
+                self.map
+                    .lines()
+                    .map(|line| line.chars().rev().collect::<Vec<char>>())
+                    .collect::<Vec<Vec<char>>>()
+            } else {
+                self.map
+                    .lines()
+                    .map(|line| line.chars().collect::<Vec<char>>())
+                    .collect::<Vec<Vec<char>>>()
+            };
+
+            let len = map_rows[0].len();
+            let mut new_rows: Vec<Vec<char>> = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                new_rows.push(Vec::with_capacity(len));
+            }
+            for index_x in 0..len {
+                for index_y in 0..len {
+                    new_rows[index_y].push(map_rows[index_x][index_y]);
+                }
+            }
+
+            new_rows
+                .iter()
+                .map(|line| line.iter().collect::<String>())
+                .collect::<Vec<String>>()
+                .join("\n")
+        };
+
+        let result = if mirror_y {
+            result.lines().rev().collect::<Vec<&str>>().join("\n")
+        } else if mirror_x {
+            result
+                .lines()
+                .map(|line| line.chars().rev().collect::<String>())
+                .collect::<Vec<String>>()
+                .join("\n")
+        } else {
+            result
+        };
+
+        return result;
     }
 
     pub fn from(id: i64, map: &str) -> Self {
@@ -83,8 +160,6 @@ impl MapTile {
             id: id,
             map: String::from(map),
             edges: edges,
-            rotated_times: 0,
-            mirrored: false,
         }
     }
 }

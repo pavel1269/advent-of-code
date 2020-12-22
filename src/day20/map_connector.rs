@@ -55,31 +55,33 @@ pub fn connect_map(map: &mut Vec<MapTile>) {
         (i32::abs(max_x - min_x) + 1) * (i32::abs(max_y - min_y) + 1)
     );
 
-    println!(
-        "min x: {}, max x: {}, min y: {}, max y {}",
-        min_x, max_x, min_y, max_y
-    );
-    println!("{:?}", result_map);
-    print_map(map, &result_map, &min_x, &max_x, &min_y, &max_y);
-    // for index_x in min_x..max_x + 1 {
-    //     if index_x == 0 {
-    //         continue;
-    //     }
-    //     println!("{:?}", result_map);
-    //     print_map(map, &result_map, &min_x, &max_x, &min_y, &max_y);
-    //     println!("scanning x: {}", index_x);
-    //     // discover_y_down(map, &mut result_map, &mut used_tile_indexes, &max_y, &index_x);
-    //     discover_y_up(
-    //         map,
-    //         &mut result_map,
-    //         &mut used_tile_indexes,
-    //         &min_y,
-    //         &index_x,
-    //     );
-    // }
-
+    // println!(
+    //     "min x: {}, max x: {}, min y: {}, max y {}",
+    //     min_x, max_x, min_y, max_y
+    // );
     // println!("{:?}", result_map);
     // print_map(map, &result_map, &min_x, &max_x, &min_y, &max_y);
+    for index_x in min_x..max_x + 1 {
+        if index_x == 0 {
+            continue;
+        }
+        println!("{:?}", result_map);
+        print_map(map, &result_map, &min_x, &max_x, &min_y, &max_y);
+        print_real_map(map, &result_map, &min_x, &max_x, &min_y, &max_y);
+        // println!("scanning x: {}", index_x);
+        // discover_y_down(map, &mut result_map, &mut used_tile_indexes, &max_y, &index_x);
+        discover_y_up(
+            map,
+            &mut result_map,
+            &mut used_tile_indexes,
+            &min_y,
+            &index_x,
+        );
+    }
+
+    println!("{:?}", result_map);
+    print_map(map, &result_map, &min_x, &max_x, &min_y, &max_y);
+    print_real_map(map, &result_map, &min_x, &max_x, &min_y, &max_y);
 }
 
 fn update_max_x(
@@ -139,25 +141,21 @@ fn discover(
             break;
         }
 
-        let edge = map_tile.edge(search_specification.direction, map_tile.mirrored);
+        let edge = map_tile.edge(search_specification.direction);
         let map_tile_next = map.get(index).unwrap();
-        println!(
-            "checking {} ({}) / {} against {}, edge: {}",
-            index, map_tile_next.id, len, map_tile.id, edge
-        );
+        // println!(
+        //     "checking {} ({}) / {} against {}, edge: {}",
+        //     index, map_tile_next.id, len, map_tile.id, edge
+        // );
         for (next_edge_index, edges_next) in map_tile_next.edges.iter().enumerate() {
             let matches_normal = edge == &edges_next.0;
             let matches_mirrored = edge == &edges_next.1;
             if matches_normal || matches_mirrored {
-                println!(
-                    "Matched {} with {}, edge index: {}, mirror: {}, edge: {}",
-                    map_tile.id, map[index].id, next_edge_index, matches_mirrored, edge
-                );
-                let mirrored = map_tile.mirrored;
-                let rotated = map_tile.rotated_times;
+                // println!(
+                //     "Matched {} with {}, edge index: {}, mirror: {}, edge: {}",
+                //     map_tile.id, map[index].id, next_edge_index, matches_mirrored, edge
+                // );
                 map[index].set_match_way(
-                    mirrored,
-                    rotated,
                     next_edge_index,
                     matches_mirrored,
                     search_specification.direction,
@@ -188,7 +186,7 @@ fn discover_y_down(
     let mut index: usize = 1;
     let mut index_y = 1;
     loop {
-        println!("index {}, index_y {}, max_y {}", index, index_y, max_y);
+        // println!("index {}, index_y {}, max_y {}", index, index_y, max_y);
         while used_tile_indexes.contains(&index) {
             index += 1;
         }
@@ -223,7 +221,7 @@ fn discover_y_down(
 }
 
 fn discover_y_up(
-    map: &Vec<MapTile>,
+    map: &mut Vec<MapTile>,
     result_map: &mut HashMap<i32, HashMap<i32, usize>>,
     used_tile_indexes: &mut Vec<usize>,
     min_y: &i32,
@@ -235,10 +233,10 @@ fn discover_y_up(
     let mut index: usize = 1;
     let mut index_y = -1;
     loop {
-        println!(
-            "index {}, index_x {}, index_y {}, min_y {}",
-            index, index_x, index_y, min_y
-        );
+        // println!(
+        //     "index {}, index_x {}, index_y {}, min_y {}",
+        //     index, index_x, index_y, min_y
+        // );
         while used_tile_indexes.contains(&index) {
             index += 1;
         }
@@ -252,22 +250,37 @@ fn discover_y_up(
             panic!();
         }
 
-        // println!("checking [{}] / {}", index, len);
+        let direction = Directions::Up;
         let map_tile_next = map.get(index).unwrap();
-        for edge in map_tile.edges.iter() {
-            let edge = &edge.0;
-            for edges_next in map_tile_next.edges.iter() {
-                if edge == &edges_next.0 || edge == &edges_next.1 {
-                    result_map
-                        .get_mut(&index_y)
-                        .unwrap()
-                        .insert(*index_x, index);
-                    index_y -= 1;
-                    used_tile_indexes.push(index);
-                    map_tile = &map[index];
-                    index = 0;
-                    break;
-                }
+        let edge = map_tile.edge(direction);
+        println!(
+            "checking {} ({}) / {} against {}, edge: {}",
+            index, map_tile_next.id, len, map_tile.id, edge
+        );
+        for (next_edge_index, edges_next) in map_tile_next.edges.iter().enumerate() {
+            let matches_normal = edge == &edges_next.0;
+            let matches_mirrored = edge == &edges_next.1;
+            println!("edge 0: {}, edge 1: {}", &edges_next.0, &edges_next.1);
+            if matches_normal || matches_mirrored {
+                println!(
+                    "Matched {} with {}, edge index: {}, mirror: {}, edge: {}",
+                    map_tile.id, map[index].id, next_edge_index, matches_mirrored, edge
+                );
+                map[index].set_match_way(
+                    next_edge_index,
+                    matches_mirrored,
+                    direction,
+                );
+                map_tile = &map[index];
+
+                result_map
+                    .get_mut(&index_y)
+                    .unwrap()
+                    .insert(*index_x, index);
+                index_y -= 1;
+                used_tile_indexes.push(index);
+                index = 0;
+                break;
             }
         }
 
@@ -295,5 +308,53 @@ fn print_map(
             }
         }
         println!("");
+    }
+}
+
+fn print_real_map(
+    map: &Vec<MapTile>,
+    result_map: &HashMap<i32, HashMap<i32, usize>>,
+    min_x: &i32,
+    max_x: &i32,
+    min_y: &i32,
+    max_y: &i32,
+) {
+    let size_int = i32::abs(max_x - min_x) + 1;
+    let size: usize = map[0].map.lines().last().unwrap().len();
+    let mut placeholder = String::new();
+    for _ in 0..size {
+        placeholder.push(' ');
+    }
+    for index_y in *min_y..*max_y + 1 {
+        let row = result_map.get(&index_y).unwrap();
+        let mut row_tiles: Vec<Option<Vec<String>>> = Vec::new();
+        for index_x in *min_x..*max_x + 1 {
+            match row.get(&index_x) {
+                None => {
+                    row_tiles.push(None);
+                }
+                Some(index) => {
+                    let map = &map[*index].map;
+                    let lines = map.lines().map(|line| line.to_string()).collect::<Vec<String>>();
+                    // println!("len: {}: {}", lines.len(), map);
+                    row_tiles.push(Some(lines));
+                }
+            }
+        }
+        for index_row in 0..size {
+            for index_x in 0..size_int {
+                match &row_tiles[index_x as usize] {
+                    None => {
+                        print!("{}", placeholder);
+                    },
+                    Some(vec) => {
+                        print!("{}", vec[index_row]);
+                    },
+                }
+                print!(" ");
+            }
+            println!();
+        }
+        println!();
     }
 }
