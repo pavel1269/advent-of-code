@@ -1,8 +1,12 @@
 mod directions;
 mod map_connector;
-mod parser;
+mod map_creator;
 mod map_tile;
+mod monster_finder;
+mod parser;
 use map_connector::*;
+use map_creator::*;
+use monster_finder::*;
 use parser::*;
 
 pub fn get_part1_result() -> i64 {
@@ -10,6 +14,19 @@ pub fn get_part1_result() -> i64 {
     let corners_sum = multiply_map_corner_ids(input);
 
     return corners_sum;
+}
+
+fn get_example_input() -> &'static str {
+    include_str!("example.txt")
+}
+
+pub fn get_part2_result() -> i64 {
+    let _ = get_challenge_input();
+    let input = get_example_input();
+    let _ = create_image(input);
+    let _ = get_monster_patterns();
+
+    return -1;
 }
 
 fn multiply_map_corner_ids(input: &str) -> i64 {
@@ -37,7 +54,7 @@ mod tests {
     pub fn get_example_input() -> &'static str {
         include_str!("example.txt")
     }
-    
+
     #[test]
     fn example_part1_result() {
         let input = get_example_input();
