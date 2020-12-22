@@ -16,17 +16,36 @@ pub fn get_part1_result() -> i64 {
     return corners_sum;
 }
 
-fn get_example_input() -> &'static str {
-    include_str!("example.txt")
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let roughness = calculate_roughness(input);
+
+    return roughness;
 }
 
-pub fn get_part2_result() -> i64 {
-    let _ = get_challenge_input();
-    let input = get_example_input();
-    let _ = create_image(input);
-    let _ = get_monster_patterns();
+fn calculate_roughness(input: &str) -> i64 {
+    use map_tile::*;
+    use directions::*;
 
-    return -1;
+    let image = create_image(input);
+
+    // Rotate so monsters are not vertically
+    let mut tile = MapTile::from(0, image.join("\n").as_str());
+    tile.set_map_way(0, false, Directions::Left);
+    let image = tile.map.lines().map(|line| String::from(line)).collect::<Vec<String>>();
+
+    println!("{}", &image.join("\n"));
+
+    let monster_patterns = get_monster_patterns();
+    let matches = count_monsters(&image, &monster_patterns);
+    let matches_count = matches.iter().sum::<i64>();
+    let monster_size = monster_patterns[0].get_size() as i64;
+    let monsters_size = matches_count * monster_size;
+    let roughness_total = image.join("").chars().filter(|char| *char == '#').count() as i64;
+    let roughness = roughness_total - monsters_size;
+    println!("Matches: {}, monster size: {}, roughness total: {}, roughness: {}", matches_count, monster_size, roughness_total, roughness);
+
+    return roughness;
 }
 
 fn multiply_map_corner_ids(input: &str) -> i64 {
@@ -69,5 +88,21 @@ mod tests {
         let result = multiply_map_corner_ids(input);
 
         assert_eq!(32287787075651, result);
+    }
+
+    #[test]
+    fn example_part2_result() {
+        let input = get_example_input();
+        let result = calculate_roughness(input);
+
+        assert_eq!(273, result);
+    }
+
+    #[test]
+    fn input_part2_result() {
+        let input = get_challenge_input();
+        let result = calculate_roughness(input);
+
+        assert_eq!(1939, result);
     }
 }
