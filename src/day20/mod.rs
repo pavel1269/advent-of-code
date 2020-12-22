@@ -34,7 +34,7 @@ fn calculate_roughness(input: &str) -> i64 {
     tile.set_map_way(0, false, Directions::Left);
     let image = tile.map.lines().map(|line| String::from(line)).collect::<Vec<String>>();
 
-    println!("{}", &image.join("\n"));
+    // println!("{}", &image.join("\n"));
 
     let monster_patterns = get_monster_patterns();
     let matches = count_monsters(&image, &monster_patterns);
@@ -43,7 +43,7 @@ fn calculate_roughness(input: &str) -> i64 {
     let monsters_size = matches_count * monster_size;
     let roughness_total = image.join("").chars().filter(|char| *char == '#').count() as i64;
     let roughness = roughness_total - monsters_size;
-    println!("Matches: {}, monster size: {}, roughness total: {}, roughness: {}", matches_count, monster_size, roughness_total, roughness);
+    // println!("Matches: {}, monster size: {}, roughness total: {}, roughness: {}", matches_count, monster_size, roughness_total, roughness);
 
     return roughness;
 }
