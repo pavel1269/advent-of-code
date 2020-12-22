@@ -54,10 +54,17 @@ pub fn count_monsters(image: &Vec<String>, monster_patterns: &Vec<Pattern>) -> V
                 if is_matching {
                     println!("Monster found at [{}, {}], pattern rotation index: {}", index_x, index_y, pattern_index);
                     matches[pattern_index] += 1;
+                    
+                    // for pattern_point in pattern.points.iter() {
+                    //     assert_eq!(image[index_y + pattern_point.1][index_x + pattern_point.0], '#');
+                    //     image[index_y + pattern_point.1][index_x + pattern_point.0] = 'O';
+                    // }
                 }
             }
         }
     }
+
+    // println!("{}", image.iter().map(|line| line.iter().collect::<String>()).collect::<Vec<String>>().join("\n"));
 
     return matches;
 }
