@@ -8,8 +8,6 @@ pub struct MapTile {
     pub id: i64,
     pub map: String,
     pub edges: [(String, String); 4],
-    // Clockwise roration
-    // pub rotated_times: usize,
 }
 
 impl MapTile {
@@ -20,7 +18,7 @@ impl MapTile {
         return &edges.0;
     }
 
-    pub fn set_match_way(
+    pub fn set_map_way(
         &mut self,
         edge_index: usize,
         matches_mirrored: bool,
@@ -28,16 +26,16 @@ impl MapTile {
     ) {
         let (rotate_times, mirror_x, mirror_y) =
             Self::determine_map_change(edge_index, matches_mirrored, search_direction);
-        println!(
-            "[{}] Set rotated to {}, mirroring x: {} y: {} ({}, {}, {:?})",
-            self.id,
-            rotate_times,
-            mirror_x,
-            mirror_y,
-            edge_index,
-            matches_mirrored,
-            search_direction,
-        );
+        // println!(
+        //     "[{}] Set rotated to {}, mirroring x: {} y: {} ({}, {}, {:?})",
+        //     self.id,
+        //     rotate_times,
+        //     mirror_x,
+        //     mirror_y,
+        //     edge_index,
+        //     matches_mirrored,
+        //     search_direction,
+        // );
         let new_map = self.rotated_map(rotate_times, mirror_x, mirror_y);
         *self = Self::from(self.id, new_map.as_str());
     }
@@ -47,7 +45,8 @@ impl MapTile {
         matches_mirrored: bool,
         search_direction: Directions,
     ) -> (usize, bool, bool) {
-        let rotate_times = (Directions::count() + search_direction.match_offset() - edge_index) % Directions::count();
+        let rotate_times = (Directions::count() + search_direction.match_offset() - edge_index)
+            % Directions::count();
         let mirror_x = !matches_mirrored
             && (search_direction == Directions::Up || search_direction == Directions::Down);
         let mirror_y = !matches_mirrored
@@ -56,7 +55,7 @@ impl MapTile {
         return (rotate_times, mirror_x, mirror_y);
     }
 
-    fn rotated_map(&self, rotate_times: usize, mirror_x: bool, mirror_y: bool) -> String {
+    fn rotated_map(&self, rotate_times: usize, mut mirror_x: bool, mirror_y: bool) -> String {
         let result = if rotate_times == 0 {
             self.map.clone()
         } else if rotate_times == 2 {
@@ -69,15 +68,16 @@ impl MapTile {
                 .collect::<Vec<String>>()
                 .join("\n")
         } else {
-            let map_rows = if rotate_times == 3 {
+            let map_rows = if rotate_times == 1 {
+                mirror_x = !mirror_x;
                 self.map
                     .lines()
-                    .map(|line| line.chars().rev().collect::<Vec<char>>())
+                    .map(|line| line.chars().collect::<Vec<char>>())
                     .collect::<Vec<Vec<char>>>()
             } else {
                 self.map
                     .lines()
-                    .map(|line| line.chars().collect::<Vec<char>>())
+                    .map(|line| line.chars().rev().collect::<Vec<char>>())
                     .collect::<Vec<Vec<char>>>()
             };
 

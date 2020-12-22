@@ -18,6 +18,7 @@ pub fn parse_input(input: &str) -> Vec<MapTile> {
 #[cfg(test)]
 mod tests {
     use super::super::*;
+    use super::super::tests::get_example_input;
     use super::*;
 
     #[test]
