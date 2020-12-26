@@ -7,6 +7,14 @@ pub fn get_part1_result() -> i64 {
     return result;
 }
 
+pub fn get_part2_result() -> i64 {
+    let input = get_challenge_input();
+    let result = list_dangerou_ingredients(input);
+
+    println!("Real result: {}", &result);
+    return -1;
+}
+
 struct Food {
     ingredients: LinkedList<usize>,
     allergens: LinkedList<usize>,
@@ -22,6 +30,32 @@ fn count_part1(input: &str) -> i64 {
     let menu = parse_menu(input);
     let ingredient_allergen = identify_allergens(&menu);
     let result = count_ingredients_without_allergen(&menu, &ingredient_allergen);
+
+    return result;
+}
+
+fn list_dangerou_ingredients(input: &str) -> String {
+    let menu = parse_menu(input);
+    let ingredient_allergen = identify_allergens(&menu);
+
+    let mut allergens = menu
+        .allergen_names
+        .iter()
+        .cloned()
+        .enumerate()
+        .collect::<Vec<(usize, String)>>();
+    allergens.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    let result = allergens
+        .iter()
+        .map(|(allergen, _)| {
+            let res = ingredient_allergen
+                .iter()
+                .find(|ingredient_allergen| ingredient_allergen.1 == allergen)
+                .unwrap();
+            return menu.ingredient_names.get(*res.0).unwrap().clone();
+        })
+        .collect::<Vec<String>>()
+        .join(",");
 
     return result;
 }
@@ -166,8 +200,8 @@ fn get_challenge_input() -> &'static str {
 mod tests {
     use super::*;
 
-    fn get_example_input() -> &'static str {
-        "mxmxvkd kfcds sqjhc nhms (contains dairy, fish)
+    pub fn get_example_input() -> &'static str {
+        "mxmxvkd kfcds sqjhc nhms (contains fish, dairy)
 trh fvjkl sbzzf mxmxvkd (contains dairy)
 sqjhc fvjkl (contains soy)
 sqjhc mxmxvkd sbzzf (contains fish)
@@ -188,5 +222,21 @@ mxmxvkd sqjhc
         let result = get_part1_result();
 
         assert_eq!(2659, result);
+    }
+
+    #[test]
+    fn example_list_ingredients() {
+        let input = get_example_input();
+        let list = list_dangerou_ingredients(input);
+
+        assert_eq!("mxmxvkd,sqjhc,fvjkl", list);
+    }
+
+    #[test]
+    fn input_list_ingredients() {
+        let input = get_challenge_input();
+        let list = list_dangerou_ingredients(input);
+
+        assert_eq!("rcqb,cltx,nrl,qjvvcvz,tsqpn,xhnk,tfqsb,zqzmzl", list);
     }
 }
