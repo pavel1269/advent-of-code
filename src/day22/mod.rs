@@ -125,13 +125,13 @@ fn get_challenge_input() -> &'static str {
     include_str!("input.txt")
 }
 
-fn get_example_input() -> &'static str {
-    include_str!("example.txt")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn get_example_input() -> &'static str {
+        include_str!("example.txt")
+    }
 
     #[test]
     fn example_play_score_matches() {
