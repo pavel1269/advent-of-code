@@ -1,0 +1,13 @@
+[package]
+name = "aoc-2021"
+version = "0.1.0"
+authors = ["Pavel Grim <3780785+pavel1269@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hex = "0.4"
+lazy_static = "1.4.0"
+num = "0.4"
+regex = "1.4.2"
