@@ -1,6 +1,7 @@
 
 mod day01;
 mod day02;
+mod day03;
 
 fn main() {
     let known_solutions = get_known_solutions();
@@ -15,6 +16,7 @@ fn get_known_solutions() -> Vec<[fn() -> String; MAX_PARTS]> {
     let known_solutions = vec![
         [day01::get_solution_part1, day01::get_solution_part2],
         [day02::get_solution_part1, day02::get_solution_part2],
+        [day03::get_solution_part1, day03::get_solution_part2],
     ];
 
     return known_solutions;
