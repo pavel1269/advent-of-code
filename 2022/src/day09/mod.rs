@@ -1,14 +1,19 @@
 use std::collections::HashSet;
 
-
 pub fn get_solution_part1() -> String {
     let input = get_input();
-    let result = calculate_visited_places(input);
+    let result = calculate_visited_places(input, 1);
     return result.to_string();
 }
 
-fn calculate_visited_places(input: &str) -> usize {
-    let moves = move_rope(input);
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = calculate_visited_places(input, 9);
+    return result.to_string();
+}
+
+fn calculate_visited_places(input: &str, tail_count: usize) -> usize {
+    let moves = move_rope(input, tail_count);
     return moves.len();
 }
 
@@ -118,22 +123,33 @@ impl Position {
     }
 }
 
-fn move_rope(input: &str) -> HashSet<Position> {
+fn move_rope(input: &str, tail_count: usize) -> HashSet<Position> {
     let directions = parse_input(input);
     let mut visited = HashSet::new();
     let mut head = Position::new();
-    let mut tail = Position::new();
-    visited.insert(tail);
+    let mut tails = vec![Position::new(); tail_count];
+    visited.insert(*tails.last().unwrap());
 
     for direction in directions.iter() {
         for _ in 0..direction.step {
             head.move_by_direction(direction.direction);
-            if head.is_touching(&tail) {
+            let mut last = head;
+            let mut no_move = false;
+            for tail in tails.iter_mut() {
+                if last.is_touching(&tail) {
+                    no_move = true;
+                    break;
+                }
+
+                tail.move_toward(&last);
+                last = *tail;
+            }
+
+            if no_move {
                 continue;
             }
-            
-            tail.move_toward(&head);
-            visited.insert(tail);
+
+            visited.insert(*tails.last().unwrap());
         }
     }
     return visited;
@@ -206,7 +222,7 @@ R 2"
     #[test]
     fn part1_example() {
         let input = get_example_input();
-        let result = calculate_visited_places(input);
+        let result = calculate_visited_places(input, 1);
 
         assert_eq!(result, 13);
     }
@@ -216,5 +232,39 @@ R 2"
         let result = get_solution_part1();
 
         assert_eq!(result, "5695");
+    }
+    
+    fn get_example_input2() -> &'static str {
+        "R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20"
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = calculate_visited_places(input, 9);
+
+        assert_eq!(result, 1);
+    }
+
+    #[test]
+    fn part2_example2() {
+        let input = get_example_input2();
+        let result = calculate_visited_places(input, 9);
+
+        assert_eq!(result, 36);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "2434");
     }
 }
