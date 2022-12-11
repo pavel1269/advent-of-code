@@ -1,12 +1,18 @@
 
 pub fn get_solution_part1() -> String {
     let input = get_input();
-    let result = calc_inspections(input);
+    let result = calc_inspections(input, 20, true);
     return result.to_string();
 }
 
-fn calc_inspections(input: &str) -> usize {
-    let mut inspections = monkey_business(input);
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = calc_inspections(input, 10000, false);
+    return result.to_string();
+}
+
+fn calc_inspections(input: &str, rounds: usize, relief: bool) -> usize {
+    let mut inspections = monkey_business(input, rounds, relief);
     inspections.sort();
 
     let max = inspections.pop().unwrap();
@@ -32,16 +38,24 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn apply_worry_item(&self, item: usize) -> usize {
+    fn apply_worry_item(&self, item: usize, relief: bool, lcm: usize) -> usize {
         let value = match self.op_value {
             None => item,
             Some(value) => value,
         };
         let item = match self.op {
             MonkeyOps::Add => item + value,
-            MonkeyOps::Mult => item * value,
+            MonkeyOps::Mult => (item * value) % lcm,
         };
-        return item / 3;
+
+        let item = if relief {
+            item / 3
+        }
+        else {
+            item
+        };
+
+        return item;
     }
 
     fn get_target(&self, item: usize) -> usize {
@@ -54,28 +68,29 @@ impl Monkey {
     }
 }
 
-fn monkey_business(input: &str) -> Vec<usize> {
+fn monkey_business(input: &str, rounds: usize, relief: bool) -> Vec<usize> {
     let mut monkeys = parse_input(input);
+    let divisors = monkeys.iter().map(|monkey| monkey.test).collect();
+    let lcm = least_common_multiple(divisors);
     let mut inspections = vec![0; monkeys.len()];
-    for _ in 0..20 {
+    for _round in 0..rounds {
         for index_monkey in 0..monkeys.len() {
             for item in monkeys[index_monkey].items.clone().iter().copied() {
                 let monkey = &mut monkeys[index_monkey];
                 monkey.items.remove(0);
                 inspections[index_monkey] += 1;
-                let item = monkey.apply_worry_item(item);
+                let item = monkey.apply_worry_item(item, relief, lcm);
                 let target = monkey.get_target(item);
                 monkeys[target].items.push(item);
             }
         }
-
-        // for (monkey_index, monkey) in monkeys.iter().enumerate()
-        // {
-        //     println!("Monkey {}: {:?}", monkey_index, monkey.items);
-        // }
-        // println!();
     }
     return inspections;
+}
+
+fn least_common_multiple(divisors: Vec<usize>) -> usize {
+    // Not least, but it is common multiple
+    divisors.iter().copied().reduce(|a, b| a * b).unwrap()
 }
 
 fn parse_input(input: &str) -> Vec<Monkey> {
@@ -144,8 +159,30 @@ mod tests {
     #[test]
     fn part1_example() {
         let input = get_example_input();
-        let result = calc_inspections(input);
+        let result = calc_inspections(input, 20, true);
 
         assert_eq!(result, 10605);
+    }
+
+    #[test]
+    fn part1_input() {
+        let result = get_solution_part1();
+
+        assert_eq!(result, "78960");
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = calc_inspections(input, 10000, false);
+
+        assert_eq!(result, 2713310158);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "14561971968");
     }
 }
