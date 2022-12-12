@@ -1,25 +1,66 @@
-use std::collections::{HashMap, hash_map::{Entry}};
+use std::collections::{HashMap, hash_map::Entry};
 
 pub fn get_solution_part1() -> String {
     let input = get_input();
-    let result = find_path_length(input);
+    let result = find_path_length(input).unwrap();
     return result.to_string();
 }
 
-fn find_path_length(input: &str) -> usize {
-    let map = parse_input(input);
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = find_path_via_low(input);
+    return result.to_string();
+}
 
+fn find_path_via_low(input: &str) -> usize {
+    let mut map = parse_input(input);
+    let mut distance_min = None;
+
+    for row_index in 0..map.height {
+        for column_index in 0..map.width {
+            let position = Coord::from(column_index, row_index);
+            let height = map.get_heigh(&position);
+            if height != 0 {
+                continue;
+            }
+
+            map.start = position;
+            if let Some(distance) = find_shortest_path_length(&map) {
+                if distance_min == None {
+                    distance_min = Some(distance);
+                }
+                else
+                {
+                    if let Some(current_distance) = distance_min {
+                        if current_distance > distance {
+                            distance_min = Some(distance);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return distance_min.unwrap();
+}
+
+fn find_path_length(input: &str) -> Option<usize> {
+    let map = parse_input(input);
+    return find_shortest_path_length(&map);
+}
+
+fn find_shortest_path_length(map: &Map) -> Option<usize> {
     // position, moves, estimate
-    let mut nodes: Vec<(Coord, usize, usize)> = Vec::new();
-    nodes.push((map.start, 0, estimate_remaining_distance(&map, &map.start)));
+    let mut nodes: Vec<(Coord, usize)> = Vec::new();
+    nodes.push((map.start, 0));
 
     let mut visited: HashMap<Coord, usize> = HashMap::new();
-    while let Some((position, moves, _)) = nodes.pop() {
+    while let Some((position, moves)) = nodes.pop() {
         // println!("Now at [{}, {}] ({}), target: [{}, {}]", position.x, position.y, map.get_heigh(&position), map.end.x, map.end.y);
         
         if position == map.end {
             // print_debug(&map, &visited);
-            return moves;
+            return Some(moves);
         }
 
         match visited.entry(position) {
@@ -35,15 +76,16 @@ fn find_path_length(input: &str) -> usize {
         }
 
         for next_move in get_possible_moves(&map, &position).iter().copied() {
-            nodes.push((next_move, moves + 1, estimate_remaining_distance(&map, &next_move)));
+            nodes.push((next_move, moves + 1));
         }
         nodes.sort_by(|a, b| b.1.cmp(&a.1));
     }
 
-    print_debug(&map, &visited);
-    panic!();
+    // print_debug(&map, &visited);
+    return None;
 }
 
+#[allow(dead_code)]
 fn print_debug(map: &Map, visited: &HashMap<Coord, usize>) {
     println!("Visited:");
     for row_index in 0..map.height {
@@ -62,7 +104,7 @@ fn print_debug(map: &Map, visited: &HashMap<Coord, usize>) {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Map {
     width: usize,
     height: usize,
@@ -156,14 +198,6 @@ fn get_possible_moves(map: &Map, position: &Coord) -> Vec<Coord> {
     return moves;
 }
 
-fn estimate_remaining_distance(map: &Map, position: &Coord) -> usize {
-    let x_diff = position.x.abs_diff(map.end.x);
-    let y_diff = position.y.abs_diff(map.end.y);
-    let height_diff = 'z' as usize - map.points[position.y][position.x];
-
-    return x_diff + y_diff + height_diff;
-}
-
 fn parse_input(input: &str) -> Map {
     let width = input.lines().nth(0).unwrap().len();
     let height = input.lines().count();
@@ -234,7 +268,7 @@ abdefghi"
     #[test]
     fn part1_example() {
         let input = get_example_input();
-        let result = find_path_length(input);
+        let result = find_path_length(input).unwrap();
 
         assert_eq!(result, 31);
     }
@@ -244,5 +278,20 @@ abdefghi"
         let result = get_solution_part1();
 
         assert_eq!(result, "383");
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = find_path_via_low(input);
+
+        assert_eq!(result, 29);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "377");
     }
 }
