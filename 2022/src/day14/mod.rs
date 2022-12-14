@@ -2,27 +2,41 @@ use std::collections::{HashMap, HashSet};
 
 pub fn get_solution_part1() -> String {
     let input = get_input();
-    let result = fall_sand(input);
+    let result = fall_sand(input, false);
     return result.to_string();
 }
 
-fn fall_sand(input: &str) -> usize {
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = fall_sand(input, true);
+    return result.to_string();
+}
+
+fn fall_sand(input: &str, ground: bool) -> usize {
     let mut map = build_map(input);
     let max_y = *map.iter().map(|(_, y)| y.iter().max().unwrap()).max().unwrap();
     let mut sand_index = 0;
-    while place_sand(&mut map, max_y) {
+    while try_place_sand(&mut map, max_y, ground) {
+        sand_index += 1;
+    }
+
+    if ground {
         sand_index += 1;
     }
 
     return sand_index;
 }
 
-fn place_sand(map: &mut HashMap<usize, HashSet<usize>>, max_y: usize) -> bool {
+fn try_place_sand(map: &mut HashMap<usize, HashSet<usize>>, max_y: usize, ground: bool) -> bool {
     let mut x = 500;
     let mut y = 0;
 
-    while y <= max_y {
-        if can_sand_move_down(map, x, y) {}
+    while y <= max_y + 1 {
+        if ground && y == max_y + 1 {
+            place_sand(map, x, y);
+            return true;
+        }
+        else if can_sand_move_down(map, x, y) {}
         else if can_sand_move_down_left(map, x, y) {
             x -= 1;
         }
@@ -30,15 +44,22 @@ fn place_sand(map: &mut HashMap<usize, HashSet<usize>>, max_y: usize) -> bool {
             x += 1;
         }
         else {
-            map.entry(x)
-                .or_default()
-                .insert(y);
+            if y == 0 {
+                return false;
+            }
+            place_sand(map, x, y);
             return true;
         }
         y += 1;
     }
 
     return false;
+}
+
+fn place_sand(map: &mut HashMap<usize, HashSet<usize>>, x: usize, y: usize) {
+    map.entry(x)
+        .or_default()
+        .insert(y);
 }
 
 fn can_sand_move_down(map: &mut HashMap<usize, HashSet<usize>>, x: usize, y: usize) -> bool {
@@ -123,7 +144,7 @@ mod tests {
     #[test]
     fn part1_example() {
         let input = get_example_input();
-        let result = fall_sand(input);
+        let result = fall_sand(input, false);
 
         assert_eq!(result, 24);
     }
@@ -133,5 +154,20 @@ mod tests {
         let result = get_solution_part1();
 
         assert_eq!(result, "728");
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = fall_sand(input, true);
+
+        assert_eq!(result, 93);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "27623");
     }
 }
