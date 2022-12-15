@@ -1,10 +1,31 @@
 use std::collections::HashSet;
 
-
 pub fn get_solution_part1() -> String {
     let input = get_input();
     let result = coverage_at(input, 2000000);
     return result.to_string();
+}
+
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = get_tuning_frequency(input, 4000000);
+    return result.to_string();
+}
+
+fn get_tuning_frequency(input: &str, limit: i32) -> i64 {
+    let result = locate_distress(input, limit);
+    return result.x as i64 * 4000000 + result.y as i64;
+}
+
+fn locate_distress(input: &str, limit: i32) -> Point {
+    let map = parse_input(input);
+    for y in 0..limit + 1 {
+        let x = map.get_next_uncovered(0, y);
+        if x <= limit {
+            return Point::from(x, y);
+        }
+    }
+    panic!();
 }
 
 fn coverage_at(input: &str, check_coverage: i32) -> usize {
@@ -32,6 +53,32 @@ struct Map {
 }
 
 impl Map {
+    fn get_next_uncovered(&self, x: i32, y: i32) -> i32 {
+        // y == sy -> <x - distance, x + distance>
+        // y == sy + 1 -> <x - distance + 1, x + distance - 1>
+        // y == sy + ydiff -> <x - distance + ydiff, x + distance - ydiff>
+        let ranges = self.sensors.iter()
+            .map(|sensor| {
+                let ydiff = sensor.point.y.abs_diff(y) as i32;
+                return (sensor.point.x - sensor.distance + ydiff, sensor.point.x + sensor.distance - ydiff);
+            })
+            .filter(|(start, end)| start <= end)
+            .collect::<Vec<(i32, i32)>>();
+            
+        let mut x = x;
+        let mut moved = true;
+        while moved {
+            moved = false;
+            for (start, end) in ranges.iter() {
+                if &x >= start && &x < end {
+                    moved = true;
+                    x = end + 1;
+                }
+            }
+        }
+        return x;
+    }
+
     fn is_covered(&self, point: &Point) -> bool {
         for sensor in self.sensors.iter() {
             if sensor.distance(point) <= sensor.distance {
@@ -141,5 +188,20 @@ mod tests {
         let result = get_solution_part1();
 
         assert_eq!(result, "4879972");
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = get_tuning_frequency(input, 20);
+
+        assert_eq!(result, 56000011);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "12525726647448");
     }
 }
