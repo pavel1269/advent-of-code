@@ -286,8 +286,8 @@ mod tests {
     }
 
     #[test]
-    fn part1_input() {
-        let result = get_solution_part1();
+    fn part2_input() {
+        let result = get_solution_part2();
 
         assert_eq!(result, "1530057803453");
     }
