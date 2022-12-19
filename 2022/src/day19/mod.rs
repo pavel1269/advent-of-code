@@ -1,9 +1,25 @@
-use std::collections::{HashMap, hash_map::Entry};
 
 pub fn get_solution_part1() -> String {
     let input = get_input();
     let result = calc_quality_level(input);
     return result.to_string();
+}
+
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = calc_quality_level_top3(input);
+    return result.to_string();
+}
+
+fn calc_quality_level_top3(input: &str) -> usize {
+    let blueprints = parse_input(input);
+    let time = 32;
+    let mut score = 1;
+    for blueprint in blueprints.iter().take(3) {
+        let geodes = blueprint.max_geodes(time);
+        score *= geodes;
+    }
+    return score;
 }
 
 fn calc_quality_level(input: &str) -> usize {
@@ -32,69 +48,109 @@ impl Blueprint {
         let mut state = State::new();
         state.robots.ore += 1;
 
-        let mut cache = HashMap::new();
-
         let mut states = Vec::new();
         states.push((0, state));
 
+        let max_ore_needed = self
+            .ore_robot_ore
+            .max(self.clay_robot_ore)
+            .max(self.obsidian_robot_ore)
+            .max(self.geode_robot_ore);
         let mut max = 0;
         while let Some((time, state)) = states.pop() {
             if time > time_limit {
                 panic!();
             }
+
             if time == time_limit {
                 max = max.max(state.inventory.geode);
                 continue;
             }
-
-            match cache.entry(state) {
-                Entry::Vacant(entry) => {
-                    entry.insert(time);
-                },
-                Entry::Occupied(mut entry) => {
-                    let cache_time = entry.get_mut();
-                    if *cache_time <= time {
-                        continue;
-                    }
-                    else {
-                        *cache_time = time;
-                    }
-                },
-            };
-
-            {
+            if time + 1 == time_limit {
                 let mut state = state.clone();
                 state.produce();
-                states.push((time + 1, state));
+                max = max.max(state.inventory.geode);
+                continue;
             }
 
-            if time < time_limit {
-                if self.can_build_ore_robot(&state.inventory) {
-                    let mut state = state.clone();
+            let mut include_wait = false;
+            if max_ore_needed > state.robots.ore {
+                let mut state = state.clone();
+                let mut time = time;
+                let mut can_build_ore = false;
+                while !can_build_ore && time < time_limit {
+                    can_build_ore = self.can_build_ore_robot(&state.inventory);
+                    time += 1;
                     state.produce();
+                }
+                if can_build_ore {
                     state.build_robot_ore(self);
-                    states.push((time + 1, state));
+                    states.push((time, state));
                 }
-                if self.can_build_clay_robot(&state.inventory) {
-                    let mut state = state.clone();
-                    state.produce();
-                    state.build_robot_clay(self);
-                    states.push((time + 1, state));
-                }
-                if self.can_build_obsidian_robot(&state.inventory) {
-                    let mut state = state.clone();
-                    state.produce();
-                    state.build_robot_obsidian(self);
-                    states.push((time + 1, state));
-                }
-                if self.can_build_geode_robot(&state.inventory) {
-                    let mut state = state.clone();
-                    state.produce();
-                    state.build_robot_geode(self);
-                    states.push((time + 1, state));
+                else {
+                    include_wait = true;
                 }
             }
-
+            if self.obsidian_robot_clay > state.robots.clay {
+                let mut state = state.clone();
+                let mut time = time;
+                let mut can_build_clay = false;
+                while !can_build_clay && time < time_limit {
+                    can_build_clay = self.can_build_clay_robot(&state.inventory);
+                    time += 1;
+                    state.produce();
+                }
+                if can_build_clay {
+                    state.build_robot_clay(self);
+                    states.push((time, state));
+                }
+                else {
+                    include_wait = true;
+                }
+            }
+            if self.geode_robot_obsidian > state.robots.obsidian && self.can_build_obsidian_robot_ever(&state.robots) {
+                let mut state = state.clone();
+                let mut time = time;
+                let mut can_build_obsidian = false;
+                while !can_build_obsidian && time < time_limit {
+                    can_build_obsidian = self.can_build_obsidian_robot(&state.inventory);
+                    time += 1;
+                    state.produce();
+                }
+                if can_build_obsidian {
+                    state.build_robot_obsidian(self);
+                    states.push((time, state));
+                }
+                else {
+                    include_wait = true;
+                }
+            }
+            if self.can_build_geode_robot_ever(&state.robots) {
+                let mut state = state.clone();
+                let mut time = time;
+                let mut can_build_geode = false;
+                while !can_build_geode && time < time_limit {
+                    can_build_geode = self.can_build_geode_robot(&state.inventory);
+                    time += 1;
+                    state.produce();
+                }
+                if can_build_geode {
+                    state.build_robot_geode(self);
+                    states.push((time, state));
+                }
+                else {
+                    include_wait = true;
+                }
+            }
+            if include_wait {
+                let mut state = state.clone();
+                let mut time = time;
+                while time < time_limit {
+                    time += 1;
+                    state.produce();
+                }
+                states.push((time, state));
+            }
         }
 
         return max;
@@ -112,12 +168,20 @@ impl Blueprint {
         inventory.ore >= self.obsidian_robot_ore && inventory.clay >= self.obsidian_robot_clay
     }
 
+    fn can_build_obsidian_robot_ever(&self, robots: &Materials) -> bool {
+        robots.ore > 0 && robots.clay > 0
+    }
+
     fn can_build_geode_robot(&self, inventory: &Materials) -> bool {
         inventory.ore >= self.geode_robot_ore && inventory.obsidian >= self.geode_robot_obsidian
     }
+
+    fn can_build_geode_robot_ever(&self, robots: &Materials) -> bool {
+        robots.ore > 0 && robots.obsidian > 0
+    }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct State {
     robots: Materials,
     inventory: Materials,
@@ -133,7 +197,7 @@ impl State {
         self.inventory.ore -= blueprint.clay_robot_ore;
         self.robots.clay += 1;
     }
-    
+
     fn build_robot_obsidian(&mut self, blueprint: &Blueprint) {
         self.inventory.ore -= blueprint.obsidian_robot_ore;
         self.inventory.clay -= blueprint.obsidian_robot_clay;
@@ -220,7 +284,7 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
 
         assert_eq!(result, 33);
     }
-
+    
     #[test]
     fn part1_input() {
         let result = get_solution_part1();
@@ -231,8 +295,15 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
     #[test]
     fn part2_example() {
         let input = get_example_input();
-        let result = calc_quality_level(input);
+        let result = calc_quality_level_top3(input);
 
-        assert_eq!(result, 33);
+        assert_eq!(result, 56 * 62);
+    }
+    
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "37191");
     }
 }
