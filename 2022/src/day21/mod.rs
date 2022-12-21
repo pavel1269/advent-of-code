@@ -6,6 +6,53 @@ pub fn get_solution_part1() -> String {
     return result.to_string();
 }
 
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = get_calc_myself(input);
+    return result.to_string();
+}
+
+fn get_calc_myself(input: &str) -> i64 {
+    let mut monkeys = Monkeys::from(input);
+    reset_human(&mut monkeys);
+    monkeys.reduce();
+    let name = determine_desired_result(&monkeys);
+    return monkeys.reverse_reduce(name);
+}
+
+fn determine_desired_result(monkeys: &Monkeys) -> String {
+    let root = monkeys.monkeys.get(&"root".to_string()).unwrap().borrow();
+    let eq = root.equation.as_ref().unwrap();
+    let mut op1 = monkeys.monkeys.get(&eq.op1).unwrap().borrow_mut();
+    let mut op2 = monkeys.monkeys.get(&eq.op2).unwrap().borrow_mut();
+
+    let op1_has_result = op1.number.is_some();
+    let op2_has_result = op2.number.is_some();
+
+    if op1_has_result && op2_has_result {
+        panic!();
+    }
+    else if op1_has_result {
+        let result = op1.number.unwrap();
+        op2.number = Some(result);
+        return op2.name.clone();
+    }
+    else if op2_has_result {
+        let result = op2.number.unwrap();
+        op1.number = Some(result);
+        return op1.name.clone();
+    }
+    else {
+        panic!();
+    }
+}
+
+fn reset_human(monkeys: &mut Monkeys) {
+    let mut myself = monkeys.monkeys.get(&"humn".to_string()).unwrap().borrow_mut();
+    myself.equation = None;
+    myself.number = None;
+}
+
 fn get_calc_monkey(input: &str) -> i64 {
     let mut monkeys = Monkeys::from(input);
     monkeys.reduce();
@@ -18,6 +65,41 @@ struct Monkeys {
 }
 
 impl Monkeys {
+    fn reverse_reduce(&mut self, mut name: String) -> i64 {
+        loop {
+            let monkey = self.monkeys.get(&name).unwrap().borrow();
+
+            if name == "humn" {
+                return monkey.number.unwrap();
+            }
+
+            let eq = monkey.equation.as_ref().unwrap();
+            let mut op1 = self.monkeys.get(&eq.op1).unwrap().borrow_mut();
+            let mut op2 = self.monkeys.get(&eq.op2).unwrap().borrow_mut();
+            
+            let result = monkey.number.unwrap();
+            let op1_has_result = op1.number.is_some();
+            let op2_has_result = op2.number.is_some();
+
+            if op1_has_result && op2_has_result {
+                panic!();
+            }
+            else if op1_has_result {
+                let result = eq.op.reverse_calc_op2(result, op1.number.unwrap());
+                op2.number = Some(result);
+                name = op2.name.clone();
+            }
+            else if op2_has_result {
+                let result = eq.op.reverse_calc_op1(result, op2.number.unwrap());
+                op1.number = Some(result);
+                name = op1.name.clone();
+            }
+            else {
+                panic!();
+            }
+        }
+    }
+
     fn reduce(&mut self) {
         let mut reduced = true;
         while reduced {
@@ -28,7 +110,11 @@ impl Monkeys {
                     continue;
                 }
 
-                let eq = monkey.equation.as_ref().unwrap();
+                let eq = monkey.equation.as_ref();
+                if eq.is_none() {
+                    continue;
+                }
+                let eq = eq.unwrap();
                 
                 let op1 = self.monkeys.get(&eq.op1).unwrap().borrow();
                 if op1.number.is_none() {
@@ -140,6 +226,24 @@ impl Operation {
         }
     }
 
+    fn reverse_calc_op1(&self, result: i64, op2: i64) -> i64 {
+        match self {
+            Self::Add => result - op2,
+            Self::Substract => result + op2,
+            Self::Multiply => result / op2,
+            Self::Divide => result * op2,
+        }
+    }
+
+    fn reverse_calc_op2(&self, result: i64, op1: i64) -> i64 {
+        match self {
+            Self::Add => result - op1,
+            Self::Substract => op1 - result,
+            Self::Multiply => result / op1,
+            Self::Divide => op1 / result,
+        }
+    }
+
     fn from(text: &str) -> Operation {
         match text {
             "+" => Self::Add,
@@ -197,5 +301,20 @@ hmdt: 32"
         let result = get_solution_part1();
 
         assert_eq!(result, "158731561459602");
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = get_calc_myself(input);
+
+        assert_eq!(result, 301);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part1();
+
+        assert_eq!(result, "3769668716709");
     }
 }
