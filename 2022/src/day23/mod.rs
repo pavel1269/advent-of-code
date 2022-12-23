@@ -6,6 +6,17 @@ pub fn get_solution_part1() -> String {
     return result.to_string();
 }
 
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = rounds_till_stable(input);
+    return result.to_string();
+}
+
+fn rounds_till_stable(input: &str) -> usize {
+    let mut map = Map::from(input);
+    return map.spread_till_stable();
+}
+
 fn count_empty_ground(input: &str) -> usize {
     let mut map = Map::from(input);
     map.spread(10);
@@ -46,7 +57,31 @@ impl Map {
         }
     }
 
-    fn spread_once(&mut self, order: &Vec<Direction>) {
+    fn spread_till_stable(&mut self) -> usize {
+        let directions = [
+            Direction::North,
+            Direction::South,
+            Direction::West,
+            Direction::East,
+        ];
+        let mut moves = 0;
+        loop {
+            println!("{:?}", self.elves);
+            let order: Vec<Direction> = directions
+                .iter()
+                .cycle()
+                .skip(moves)
+                .take(4)
+                .cloned()
+                .collect();
+            moves += 1;
+            if !self.spread_once(&order) {
+                return moves;
+            }
+        }
+    }
+
+    fn spread_once(&mut self, order: &Vec<Direction>) -> bool {
         let mut moves = Vec::new();
         for y in self.elves.keys().cloned() {
             let row = self.elves.get(&y).unwrap();
@@ -104,6 +139,8 @@ impl Map {
                 }
             }
         }
+
+        return moves.len() > 0;
     }
 
     fn get_surrounding(&self, x: i32, y: i32) -> [bool; Direction::Count as usize] {
@@ -320,5 +357,28 @@ mod tests {
         let result = get_solution_part1();
 
         assert_eq!(result, "3780");
+    }
+
+    #[test]
+    fn part2_example1() {
+        let input = get_example_input1();
+        let result = rounds_till_stable(input);
+
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn part2_example2() {
+        let input = get_example_input2();
+        let result = rounds_till_stable(input);
+
+        assert_eq!(result, 20);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "930");
     }
 }
