@@ -58,7 +58,7 @@ fn get_known_solutions() -> Vec<[fn() -> String; MAX_PARTS]> {
         [day21::get_solution_part1, day21::get_solution_part2],
         [day22::get_solution_part1, day22::get_solution_part2],
         [day23::get_solution_part1, day23::get_solution_part2],
-        [day24::get_solution_part1, get_not_implemented_solution],
+        [day24::get_solution_part1, day24::get_solution_part2],
     ];
 
     return known_solutions;

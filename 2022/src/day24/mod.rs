@@ -6,21 +6,43 @@ pub fn get_solution_part1() -> String {
     return result.to_string();
 }
 
+pub fn get_solution_part2() -> String {
+    let input = get_input();
+    let result = navigate_blizzard_roundtrip(input);
+    return result.to_string();
+}
+
+fn navigate_blizzard_roundtrip(input: &str) -> usize {
+    let mut valley = Valley::from(input);
+    let start = valley.start.clone();
+    let end = valley.end.clone();
+    let minutes1 = navigate_blizzard_from_to(&mut valley, start, end);
+    let minutes2 = navigate_blizzard_from_to(&mut valley, end, start);
+    let minutes3 = navigate_blizzard_from_to(&mut valley, start, end);
+    return minutes1 + minutes2 + minutes3;
+}
+
 fn navigate_blizzard(input: &str) -> usize {
     let mut valley = Valley::from(input);
-    let mut positions = HashSet::from([valley.start.clone()]);
+    let start = valley.start.clone();
+    let end = valley.end.clone();
+    let minutes = navigate_blizzard_from_to(&mut valley, start, end);
+    return minutes;
+}
+
+fn navigate_blizzard_from_to(valley: &mut Valley, start: Position, end: Position) -> usize {
+    let mut positions = HashSet::from([start]);
     let mut minutes = 0;
-    let end = valley.end.clone().move_up(&valley, false).unwrap();
     loop {
+        if positions.iter().position(|pos| pos == &end).is_some() {
+            return minutes;
+        }
+
         valley.tick();
         minutes += 1;
 
         let mut positions_new = HashSet::with_capacity(positions.len() * 2);
         for position in positions.iter().cloned() {
-            if position == end {
-                return minutes;
-            }
-
             let position_up = position.clone().move_up(&valley, false);
             let position_down = position.clone().move_down(&valley, false);
             let position_left = position.clone().move_left(&valley, false);
@@ -61,7 +83,7 @@ struct Position {
 }
 
 impl Position {
-    fn move_dir_overlap(&mut self, dir: Direction, valley: &Valley) -> Position {
+    fn move_dir_blizz(&mut self, dir: Direction, valley: &Valley) -> Position {
         match dir {
             Direction::Up => self.move_up(valley, true).unwrap(),
             Direction::Down => self.move_down(valley, true).unwrap(),
@@ -70,40 +92,47 @@ impl Position {
         }
     }
 
-    fn move_up(&mut self, valley: &Valley, overlap: bool) -> Option<Position> {
+    fn move_up(&mut self, valley: &Valley, blizz: bool) -> Option<Position> {
         if self.y == valley.top {
             return None;
         }
         self.y -= 1;
         if self.y == valley.top {
-            if overlap {
+            if blizz {
                 self.y = valley.bottom - 1;
             } else {
-                return None;
+                if valley.start.x != self.x {
+                    return None;
+                }
             }
         }
         return Some(*self);
     }
 
-    fn move_down(&mut self, valley: &Valley, overlap: bool) -> Option<Position> {
+    fn move_down(&mut self, valley: &Valley, blizz: bool) -> Option<Position> {
+        if self.y == valley.bottom {
+            return None;
+        }
         self.y += 1;
         if self.y == valley.bottom {
-            if overlap {
+            if blizz {
                 self.y = valley.top + 1;
             } else {
-                return None;
+                if valley.end.x != self.x {
+                    return None;
+                }
             }
         }
         return Some(*self);
     }
 
-    fn move_left(&mut self, valley: &Valley, overlap: bool) -> Option<Position> {
-        if self.y == valley.top {
+    fn move_left(&mut self, valley: &Valley, blizz: bool) -> Option<Position> {
+        if self.y == valley.top || self.y == valley.bottom {
             return None;
         }
         self.x -= 1;
         if self.x == valley.left {
-            if overlap {
+            if blizz {
                 self.x = valley.right - 1;
             } else {
                 return None;
@@ -112,13 +141,13 @@ impl Position {
         return Some(*self);
     }
 
-    fn move_right(&mut self, valley: &Valley, overlap: bool) -> Option<Position> {
-        if self.y == valley.top {
+    fn move_right(&mut self, valley: &Valley, blizz: bool) -> Option<Position> {
+        if self.y == valley.top || self.y == valley.bottom {
             return None;
         }
         self.x += 1;
         if self.x == valley.right {
-            if overlap {
+            if blizz {
                 self.x = valley.left + 1;
             } else {
                 return None;
@@ -154,8 +183,7 @@ impl Valley {
         for index_row in self.blizzards.keys().cloned() {
             let blizzards_row = self.blizzards.get(&index_row).unwrap();
             for (index_column, dir) in blizzards_row.iter().cloned() {
-                let position =
-                    Position::from(index_column, index_row).move_dir_overlap(dir, self);
+                let position = Position::from(index_column, index_row).move_dir_blizz(dir, self);
                 blizzards_new
                     .get_mut(&position.y)
                     .unwrap()
@@ -167,9 +195,7 @@ impl Valley {
 
     fn is_free(&self, position: &Position) -> bool {
         match self.blizzards.get(&position.y) {
-            Some(row) => {
-                row.iter().all(|(blizz_x, _)| blizz_x != &position.x)
-            },
+            Some(row) => row.iter().all(|(blizz_x, _)| blizz_x != &position.x),
             None => true,
         }
     }
@@ -244,5 +270,20 @@ mod tests {
         let result = get_solution_part1();
 
         assert_eq!(result, "274");
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = navigate_blizzard_roundtrip(input);
+
+        assert_eq!(result, 54);
+    }
+
+    #[test]
+    fn part2_input() {
+        let result = get_solution_part2();
+
+        assert_eq!(result, "839");
     }
 }
