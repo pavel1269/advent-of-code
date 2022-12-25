@@ -23,6 +23,7 @@ mod day21;
 mod day22;
 mod day23;
 mod day24;
+mod day25;
 
 fn main() {
     let known_solutions = get_known_solutions();
@@ -59,6 +60,7 @@ fn get_known_solutions() -> Vec<[fn() -> String; MAX_PARTS]> {
         [day22::get_solution_part1, day22::get_solution_part2],
         [day23::get_solution_part1, day23::get_solution_part2],
         [day24::get_solution_part1, day24::get_solution_part2],
+        [day25::get_solution_part1, get_not_implemented_solution],
     ];
 
     return known_solutions;
