@@ -5,7 +5,7 @@ fn main() {
     let games = parse_input(input);
     let result_part1 = sum_matching_games(&games);
     println!("Result part 1: {}", result_part1);
-    
+
     let result_part2 = sum_game_power(&games);
     println!("Result part 2: {}", result_part2);
 }
@@ -126,7 +126,7 @@ mod tests {
     fn get_example_input() -> &'static str {
         include_str!("./example.txt")
     }
-    
+
     #[test]
     fn part1_example() {
         let input = get_example_input();
@@ -135,7 +135,7 @@ mod tests {
 
         assert_eq!(result, 8);
     }
-    
+
     #[test]
     fn part2_example() {
         let input = get_example_input();
