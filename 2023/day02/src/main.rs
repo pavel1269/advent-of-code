@@ -3,8 +3,11 @@ use std::collections::HashMap;
 fn main() {
     let input = get_input();
     let games = parse_input(input);
-    let result = sum_matching_games(&games);
-    println!("Result part 1: {}", result);
+    let result_part1 = sum_matching_games(&games);
+    println!("Result part 1: {}", result_part1);
+    
+    let result_part2 = sum_game_power(&games);
+    println!("Result part 2: {}", result_part2);
 }
 
 #[derive(Debug)]
@@ -38,6 +41,24 @@ impl Cubes {
         }
         return true;
     }
+
+    fn power_sum(&self) -> u64 {
+        let mut sum = 1;
+        for (_, amount) in self.cubes.iter() {
+            let amount_u64: u64 = (*amount).into();
+            sum *= amount_u64;
+        }
+        return sum;
+    }
+}
+
+fn sum_game_power(games: &Vec<Game>) -> u64 {
+    let mut sum = 0;
+    for game in games {
+        sum += game.cubes.power_sum();
+    }
+
+    return sum;
 }
 
 fn sum_matching_games(games: &Vec<Game>) -> u32 {
@@ -113,5 +134,14 @@ mod tests {
         let result = sum_matching_games(&games);
 
         assert_eq!(result, 8);
+    }
+    
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let games = parse_input(input);
+        let result = sum_game_power(&games);
+
+        assert_eq!(result, 2286);
     }
 }
