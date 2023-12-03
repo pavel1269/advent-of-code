@@ -1,8 +1,38 @@
 fn main() {
     let input = get_input();
-    let schematics = parse_input(input);
+    let schematics = parse_input(input, false);
     let result_part1 = sum_touching_numbers(&schematics);
     println!("Part1: {}", result_part1);
+
+    let schematics_gears = parse_input(input, true);
+    let result_part2 = sum_gears(&schematics_gears);
+    println!("Part2: {}", result_part2);
+}
+
+fn sum_gears(schematics: &ParsedSchemtics) -> u64 {
+    let mut sum = 0;
+    for gear in schematics.symbols.iter() {
+        let mut parts = Vec::new();
+        for part in schematics.part_numbers.iter() {
+            for point in part.points.iter() {
+                if point.is_nearby(gear) {
+                    parts.push(part.id);
+                    break;
+                }
+            }
+        }
+
+        if parts.len() < 2 {
+            continue;
+        }
+        else if parts.len() > 2 {
+            panic!();
+        }
+        else {
+            sum += (parts[0] as u64) * (parts[1] as u64);
+        }
+    }
+    return sum;
 }
 
 fn sum_touching_numbers(schematics: &ParsedSchemtics) -> u64 {
@@ -51,7 +81,7 @@ impl Point {
     }
 }
 
-fn parse_input(input: &str) -> ParsedSchemtics {
+fn parse_input(input: &str, only_gears: bool) -> ParsedSchemtics {
     let mut symbols = Vec::new();
     let mut part_numbers = Vec::new();
 
@@ -84,10 +114,18 @@ fn parse_input(input: &str) -> ParsedSchemtics {
                     number = 0;
                     number_points = Vec::new();
                 }
-                symbols.push(Point { x, y });
+
+                if only_gears {
+                    if char == '*' {
+                        symbols.push(Point { x, y });
+                    }
+                }
+                else {
+                    symbols.push(Point { x, y });
+                }
             }
         }
-        
+
         if loading_number {
             part_numbers.push(ParsedPartNumber { id: number, points: number_points });
         }
@@ -114,9 +152,18 @@ mod tests {
     #[test]
     fn part1_example() {
         let input = get_example_input();
-        let schematics = parse_input(input);
+        let schematics = parse_input(input, false);
         let result = sum_touching_numbers(&schematics);
 
         assert_eq!(result, 4361);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let schematics = parse_input(input, true);
+        let result = sum_gears(&schematics);
+
+        assert_eq!(result, 467835);
     }
 }
