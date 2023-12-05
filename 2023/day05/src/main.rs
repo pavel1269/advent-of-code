@@ -6,6 +6,51 @@ fn main() {
 
     let result_part1 = get_lowest_location(&alamanac);
     println!("Part1: {}", result_part1);
+
+    let result_part2 = get_lowest_location_range(&alamanac);
+    println!("Part2: {}", result_part2);
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Range {
+    from: i64,
+    to: i64,
+}
+
+fn get_lowest_location_range(almanac: &Almanac) -> i64 {
+    let mut ranges = generate_ranges(&almanac.seeds);
+    let mut at = "seed".to_string();
+    while almanac.map_name.contains_key(&at) {
+        let mappings = &almanac.map_mappings[&at];
+        ranges = ranges
+            .iter()
+            .map(|range| mappings.apply_range(range))
+            .flatten()
+            .collect();
+        at = almanac.map_name[&at].clone();
+    }
+
+    return ranges.iter().map(|range| range.from).min().unwrap();
+}
+
+fn generate_ranges(seeds: &Vec<i64>) -> Vec<Range> {
+    if seeds.len() % 2 != 0 {
+        panic!()
+    }
+
+    let mut ranges = Vec::new();
+    for index in 0..seeds.len() {
+        if index % 2 == 1 {
+            continue;
+        }
+
+        let from = seeds[index];
+        let range = seeds[index + 1];
+        let to = from + range - 1;
+        ranges.push(Range { from, to });
+    }
+
+    return ranges;
 }
 
 fn get_lowest_location(almanac: &Almanac) -> i64 {
@@ -13,7 +58,10 @@ fn get_lowest_location(almanac: &Almanac) -> i64 {
     let mut at = "seed".to_string();
     while almanac.map_name.contains_key(&at) {
         let mappings = &almanac.map_mappings[&at];
-        numbers = numbers.iter().map(|number| mappings.apply(*number)).collect();
+        numbers = numbers
+            .iter()
+            .map(|number| mappings.apply(*number))
+            .collect();
         at = almanac.map_name[&at].clone();
     }
 
@@ -57,6 +105,32 @@ impl Mappings {
         }
         return number;
     }
+
+    fn apply_range(&self, range: &Range) -> Vec<Range> {
+        let mut start_numbers: Vec<i64> = self.mappings.iter().map(|rule| rule.start).filter(|number| *number > range.from && *number < range.to).collect();
+        start_numbers.sort();
+        let mut ranges = Vec::new();
+        let mut at = range.from;
+        while at < range.to {
+            let next = match start_numbers.pop() {
+                None => range.to + 1,
+                Some(next) => next,
+            };
+            let offset = self.mappings.iter().filter(|rule| rule.start <= at && rule.end >= at).map(|rule| rule.offset).next();
+            match offset {
+                None => {
+                    ranges.push(Range { from: at, to: next - 1});
+                },
+                Some(offset) => {
+                    ranges.push(Range { from: at - offset, to: next - offset - 1});
+                },
+            }
+
+            at = next;
+        }
+
+        return ranges;
+    }
 }
 
 #[derive(Debug)]
@@ -78,14 +152,14 @@ impl Mapping {
 
         let mapping = Mapping {
             start: start_from,
-            end: start_from + range,
+            end: start_from + range - 1,
             offset: start_from - start_to,
         };
         return mapping;
     }
 
     fn try_apply(&self, number: i64) -> Option<i64> {
-        if number < self.start || number >= self.end {
+        if number < self.start || number > self.end {
             return None;
         }
 
@@ -96,7 +170,10 @@ impl Mapping {
 fn parse_input(input: &str) -> Almanac {
     let mut lines = input.lines();
     let seeds_string = lines.next().unwrap();
-    let seeds: Vec<i64> = seeds_string[7..].split(' ').map(|seed| seed.parse().unwrap()).collect();
+    let seeds: Vec<i64> = seeds_string[7..]
+        .split(' ')
+        .map(|seed| seed.parse().unwrap())
+        .collect();
     lines.next();
 
     let regex = regex::Regex::new(r"^(.+)-to-(.+) map:$").unwrap();
@@ -118,13 +195,14 @@ fn parse_ranges(lines: &mut Lines<'_>) -> Mappings {
             break;
         }
 
-        let numbers: Vec<i64> = line.split(' ').map(|number| number.parse().unwrap()).collect();
+        let numbers: Vec<i64> = line
+            .split(' ')
+            .map(|number| number.parse().unwrap())
+            .collect();
         mappings.push(Mapping::from(numbers));
     }
 
-    return Mappings {
-        mappings,
-    };
+    return Mappings { mappings };
 }
 
 fn get_input() -> &'static str {
@@ -145,5 +223,13 @@ mod tests {
         let alamanac = parse_input(input);
         let result = get_lowest_location(&alamanac);
         assert_eq!(result, 35);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let alamanac = parse_input(input);
+        let result = get_lowest_location_range(&alamanac);
+        assert_eq!(result, 46);
     }
 }
