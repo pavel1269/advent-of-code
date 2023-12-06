@@ -1,13 +1,19 @@
 fn main() {
-    let input = get_input();
-    let races = parse_input_part1(input);
+    use std::time::Instant;
 
+    let input = get_input();
+    let now = Instant::now();
+    let races = parse_input_part1(input);
     let result_part1 = ways_to_win_mult(&races);
+    let elapsed_part1 = now.elapsed();
     println!("Part1: {}", result_part1);
     
+    let now = Instant::now();
     let races = parse_input_part2(input);
     let result_part2 = ways_to_win_mult(&races);
+    let elapsed_part2 = now.elapsed();
     println!("Part2: {}", result_part2);
+    println!("Duration of part1: {:.2?}, part2: {:.2?}", elapsed_part1, elapsed_part2);
 }
 
 fn ways_to_win_mult(races: &Vec<Race>) -> u64 {
