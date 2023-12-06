@@ -1,12 +1,16 @@
 fn main() {
     let input = get_input();
-    let races = parse_input(input);
+    let races = parse_input_part1(input);
 
     let result_part1 = ways_to_win_mult(&races);
     println!("Part1: {}", result_part1);
+    
+    let races = parse_input_part2(input);
+    let result_part2 = ways_to_win_mult(&races);
+    println!("Part2: {}", result_part2);
 }
 
-fn ways_to_win_mult(races: &Vec<Race>) -> u32 {
+fn ways_to_win_mult(races: &Vec<Race>) -> u64 {
     let mut mult = 1;
     for race in races {
         let ways = ways_to_win(race);
@@ -15,7 +19,7 @@ fn ways_to_win_mult(races: &Vec<Race>) -> u32 {
     return mult;
 }
 
-fn ways_to_win(race: &Race) -> u32 {
+fn ways_to_win(race: &Race) -> u64 {
     let is_odd = race.time % 2 == 1;
     let q = race.time / 2;
     let max = if is_odd {
@@ -47,14 +51,31 @@ fn ways_to_win(race: &Race) -> u32 {
 
 #[derive(Debug)]
 struct Race {
-    time: u32,
-    distance: u32,
+    time: u64,
+    distance: u64,
 }
 
-fn parse_input(input: &str) -> Vec<Race> {
+fn parse_input_part2(input: &str) -> Vec<Race> {
     let lines: Vec<&str> = input.lines().collect();
-    let times: Vec<u32> = lines[0].split(' ').skip(1).filter(|str| str.len() > 0).map(|str| str.parse().unwrap()).collect();
-    let distances: Vec<u32> = lines[1].split(' ').skip(1).filter(|str| str.len() > 0).map(|str| str.parse().unwrap()).collect();
+    let times: Vec<u64> = lines[0].replace(' ', "").split(':').skip(1).take(1).map(|str| str.parse().unwrap()).collect();
+    let distances: Vec<u64> = lines[1].replace(' ', "").split(':').skip(1).take(1).map(|str| str.parse().unwrap()).collect();
+
+    if times.len() != distances.len() {
+        panic!()
+    }
+
+    let race = Race {
+        time: times[0],
+        distance: distances[0],
+    };
+    let races = vec![race];
+    return races;
+}
+
+fn parse_input_part1(input: &str) -> Vec<Race> {
+    let lines: Vec<&str> = input.lines().collect();
+    let times: Vec<u64> = lines[0].split(' ').skip(1).filter(|str| str.len() > 0).map(|str| str.parse().unwrap()).collect();
+    let distances: Vec<u64> = lines[1].split(' ').skip(1).filter(|str| str.len() > 0).map(|str| str.parse().unwrap()).collect();
 
     if times.len() != distances.len() {
         panic!()
@@ -90,7 +111,7 @@ mod tests {
     #[test_case(7, 11, 2)]
     #[test_case(7, 12, 0)]
     #[test_case(30, 200, 9)]
-    fn ways_to_win_test(time: u32, distance: u32, expected: u32) {
+    fn ways_to_win_test(time: u64, distance: u64, expected: u64) {
         let race = Race{ time, distance };
         let result = ways_to_win(&race);
         assert_eq!(expected, result);
@@ -104,8 +125,16 @@ Distance:  9  40  200"
     #[test]
     fn part1_example() {
         let input = get_example_input();
-        let races = parse_input(input);
+        let races = parse_input_part1(input);
         let result = ways_to_win_mult(&races);
         assert_eq!(result, 288);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let races = parse_input_part2(input);
+        let result = ways_to_win_mult(&races);
+        assert_eq!(result, 71503);
     }
 }
