@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, LinkedList};
 
 fn main() {
     let input = get_input();
@@ -6,25 +6,76 @@ fn main() {
 
     let result_part1 = largest_distance(&map);
     println!("Part1: {}", result_part1);
+
+    let result_part2 = enclosed_tiles(&map);
+    println!("Part2: {}", result_part2);
+}
+
+fn enclosed_tiles(map: &Map) -> u32 {
+    let width = *map.map.keys().max().unwrap();
+    let height = *map.map.values().map(|column| column.keys().max().unwrap()).max().unwrap();
+
+    let mut walk_map = vec![vec![false; (width + 2) * 2]; (height + 2) * 2];
+    map.identify_loop(|pos, direction| {
+        let pos = Position {
+            x: pos.x * 2 + 1,
+            y: pos.y * 2 + 1,
+        };
+        walk_map[pos.y][pos.x] = true;
+        let pos = pos.clone().move_by(direction.opposite()).unwrap();
+        walk_map[pos.y][pos.x] = true;
+    });
+
+    flood_fill(&mut walk_map);
+
+    let mut enclosed = 0;
+    for y in 0..height {
+        let y = y * 2 + 1;
+        for x in 0..width {
+            let x = x * 2 + 1;
+            if !walk_map[y][x] {
+                enclosed += 1;
+            }
+        }
+    }
+    return enclosed;
+}
+
+fn flood_fill(map: &mut Vec<Vec<bool>>) {
+    let heigt = map.len();
+    let width = map[0].len();
+
+    let mut to_go = LinkedList::new();
+    to_go.push_back(Position { x: 0, y: 0 });
+    
+    while let Some(pos) = to_go.pop_front() {
+        if pos.x >= width || pos.y >= heigt {
+            continue;
+        }
+        if map[pos.y][pos.x] {
+            continue;
+        }
+
+        map[pos.y][pos.x] = true;
+        if let Some(pos) = pos.move_by(Direction::Left) {
+            to_go.push_back(pos);
+        }
+        if let Some(pos) = pos.move_by(Direction::Right) {
+            to_go.push_back(pos);
+        }
+        if let Some(pos) = pos.move_by(Direction::Up) {
+            to_go.push_back(pos);
+        }
+        if let Some(pos) = pos.move_by(Direction::Down) {
+            to_go.push_back(pos);
+        }
+    }
 }
 
 fn largest_distance(map: &Map) -> u32 {
-    let loop_size = loop_size(map);
-    return loop_size / 2;
-}
-
-fn loop_size(map: &Map) -> u32 {
     let mut distance = 0;
-    let mut position = map.start.unwrap();
-    let mut last_direction = None;
-    while distance == 0 || position != map.start.unwrap() {
-        let (position_new, last_direction_new) = map.r#move(&position, last_direction);
-        position = position_new;
-        last_direction = Some(last_direction_new);
-        distance += 1;
-    }
-
-    return distance;
+    map.identify_loop(|_, _| distance += 1);
+    return distance / 2;
 }
 
 #[derive(Debug)]
@@ -41,7 +92,22 @@ impl Map {
         }
     }
 
-    fn r#move(
+    fn identify_loop(&self, mut callback: impl FnMut(&Position, &Direction)) -> u32 {
+        let mut distance = 0;
+        let mut position = self.start.unwrap();
+        let mut last_direction = None;
+        while distance == 0 || position != self.start.unwrap() {
+            let (position_new, last_direction_new) = self.make_a_move(&position, last_direction);
+            position = position_new;
+            last_direction = Some(last_direction_new);
+            callback(&position, &last_direction_new);
+            distance += 1;
+        }
+    
+        return distance;
+    }
+    
+    fn make_a_move(
         &self,
         position: &Position,
         last_direction: Option<Direction>,
@@ -65,7 +131,7 @@ impl Map {
     fn try_move(&self, position: &Position, last_direction: Option<Direction>, direction: Direction) -> Option<(Position, Direction)> {
         let pipe = self.get(position).unwrap();
         if last_direction != Some(direction.opposite()) && pipe.can_go(&direction) {
-            if let Some(position) = position.r#move(direction) {
+            if let Some(position) = position.move_by(direction) {
                 if let Some(pipe) = self.get(&position) {
                     if pipe.can_go(&direction.opposite()) {
                         return Some((position, direction));
@@ -152,7 +218,7 @@ struct Position {
 }
 
 impl Position {
-    fn r#move(&self, direction: Direction) -> Option<Self> {
+    fn move_by(&self, direction: Direction) -> Option<Self> {
         let position: (Option<usize>, Option<usize>) = match direction {
             Direction::Down => (Some(self.x), Some(self.y + 1)),
             Direction::Up => (Some(self.x), self.y.checked_add_signed(-1)),
@@ -203,51 +269,99 @@ fn get_input() -> &'static str {
 mod tests {
     use super::*;
 
-    fn get_example1_input() -> &'static str {
-        include_str!("./example1.txt")
+    fn get_example1_part1_input() -> &'static str {
+        include_str!("./example1_part1.txt")
     }
 
-    fn get_example2_input() -> &'static str {
-        include_str!("./example2.txt")
+    fn get_example2_part1_input() -> &'static str {
+        include_str!("./example2_part1.txt")
     }
 
-    fn get_example3_input() -> &'static str {
-        include_str!("./example3.txt")
+    fn get_example3_part1_input() -> &'static str {
+        include_str!("./example3_part1.txt")
     }
 
-    fn get_example4_input() -> &'static str {
-        include_str!("./example4.txt")
+    fn get_example4_part1_input() -> &'static str {
+        include_str!("./example4_part1.txt")
     }
 
     #[test]
-    fn part1_example() {
-        let input = get_example1_input();
+    fn part1_example1() {
+        let input = get_example1_part1_input();
         let map = parse_input(input);
         let result = largest_distance(&map);
         assert_eq!(result, 4);
     }
 
     #[test]
-    fn part2_example() {
-        let input = get_example2_input();
+    fn part1_example2() {
+        let input = get_example2_part1_input();
         let map = parse_input(input);
         let result = largest_distance(&map);
         assert_eq!(result, 4);
     }
 
     #[test]
-    fn part3_example() {
-        let input = get_example3_input();
+    fn part1_example3() {
+        let input = get_example3_part1_input();
         let map = parse_input(input);
         let result = largest_distance(&map);
         assert_eq!(result, 8);
     }
 
     #[test]
-    fn part4_example() {
-        let input = get_example4_input();
+    fn part1_example4() {
+        let input = get_example4_part1_input();
         let map = parse_input(input);
         let result = largest_distance(&map);
         assert_eq!(result, 8);
+    }
+
+    fn get_example1_part2_input() -> &'static str {
+        include_str!("./example1_part2.txt")
+    }
+
+    fn get_example2_part2_input() -> &'static str {
+        include_str!("./example2_part2.txt")
+    }
+
+    fn get_example3_part2_input() -> &'static str {
+        include_str!("./example3_part2.txt")
+    }
+
+    fn get_example4_part2_input() -> &'static str {
+        include_str!("./example4_part2.txt")
+    }
+
+    #[test]
+    fn part2_example1() {
+        let input = get_example1_part2_input();
+        let map = parse_input(input);
+        let result = enclosed_tiles(&map);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn part2_example2() {
+        let input = get_example2_part2_input();
+        let map = parse_input(input);
+        let result = enclosed_tiles(&map);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn part2_example3() {
+        let input = get_example3_part2_input();
+        let map = parse_input(input);
+        let result = enclosed_tiles(&map);
+        assert_eq!(result, 8);
+    }
+
+    #[test]
+    fn part2_example4() {
+        let input = get_example4_part2_input();
+        let map = parse_input(input);
+        let result = enclosed_tiles(&map);
+        assert_eq!(result, 10);
     }
 }
