@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use criterion::{Criterion, black_box};
 
 fn main() {
     let input = get_input();
@@ -9,6 +10,10 @@ fn main() {
 
     let result_part2 = sum_distances(&map, 1000000);
     println!("Part2: {}", result_part2);
+    
+    let mut criterion = Criterion::default();
+    criterion.bench_function("2023 day 11 part 1", |b| b.iter(|| { black_box(sum_distances(&map, 2)); }));
+    criterion.bench_function("2023 day 11 part 2", |b| b.iter(|| { black_box(sum_distances(&map, 1000000)); }));
 }
 
 fn sum_distances(map: &Map, gap_size: usize) -> usize {
@@ -51,7 +56,7 @@ impl Map {
         let columns = galaxies.iter().map(|point| point.x).collect::<HashSet<_>>();
         let width = galaxies.iter().map(|point| point.x).max().unwrap();
         let column_gaps = (0..width).filter(|x| !columns.contains(x)).collect::<HashSet<_>>();
-        
+
         let rows = galaxies.iter().map(|point| point.y).collect::<HashSet<_>>();
         let height = galaxies.iter().map(|point| point.y).max().unwrap();
         let row_gaps = (0..height).filter(|y| !rows.contains(y)).collect::<HashSet<_>>();
