@@ -4,17 +4,20 @@ fn main() {
     let input = get_input();
     let map = parse_input(input);
 
-    let result_part1 = sum_distances(&map);
+    let result_part1 = sum_distances(&map, 2);
     println!("Part1: {}", result_part1);
+
+    let result_part2 = sum_distances(&map, 1000000);
+    println!("Part2: {}", result_part2);
 }
 
-fn sum_distances(map: &Map) -> usize {
+fn sum_distances(map: &Map, gap_size: usize) -> usize {
     let mut sum = 0;
     let galaxies = map.galaxies.len();
     for (index, galaxy) in map.galaxies.iter().enumerate() {
         for index_other in index+1..galaxies {
             let galaxy_other = map.galaxies[index_other];
-            let distance = map.calculate_distance(galaxy, &galaxy_other);
+            let distance = map.calculate_distance(galaxy, &galaxy_other, gap_size);
             sum += distance;
         }
     }
@@ -29,7 +32,7 @@ struct Map {
 }
 
 impl Map {
-    fn calculate_distance(&self, point1: &Point, point2: &Point) -> usize {
+    fn calculate_distance(&self, point1: &Point, point2: &Point, gap_size: usize) -> usize {
         let x_from = point1.x.min(point2.x);
         let x_to = point1.x.max(point2.x);
         let y_from = point1.y.min(point2.y);
@@ -37,7 +40,8 @@ impl Map {
 
         let column_gaps = (x_from..x_to).filter(|x| self.column_gaps.contains(x)).count();
         let row_gaps = (y_from..y_to).filter(|y| self.row_gaps.contains(y)).count();
-        let distance = x_to - x_from + column_gaps + y_to - y_from + row_gaps;
+        let gap_size_calc = gap_size - 1;
+        let distance = x_to - x_from + column_gaps * gap_size_calc + y_to - y_from + row_gaps * gap_size_calc;
         return distance;
     }
 
@@ -96,7 +100,15 @@ mod tests {
     fn part1_example() {
         let input = get_example_input();
         let map = parse_input(input);
-        let result = sum_distances(&map);
+        let result = sum_distances(&map, 2);
         assert_eq!(result, 374);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let map = parse_input(input);
+        let result = sum_distances(&map, 10);
+        assert_eq!(result, 1030);
     }
 }
