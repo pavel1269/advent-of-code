@@ -8,15 +8,9 @@ fn main() {
 }
 
 fn summarize_mirrors(maps: &Vec<Map>, include_error: bool) -> u64 {
-    maps.iter().map(|map| map.detect_mirror_sumary(include_error)).sum()
-}
-
-fn is_single_error(n1: u64, n2: u64) -> bool {
-    let x = n1 ^ n2;
-    if x == 0 {
-        return false;
-    }
-    return x & (x - 1) == 0;
+    maps.iter()
+        .map(|map| map.detect_mirror_sumary(include_error))
+        .sum()
 }
 
 #[derive(Debug)]
@@ -29,12 +23,12 @@ struct Map {
 
 impl Map {
     fn detect_mirror_sumary(&self, include_error: bool) -> u64 {
-        for x in 0..self.width {
+        for x in 0..self.width - 1 {
             if self.is_reflected_row(x, include_error) {
                 return x as u64 + 1;
             }
         }
-        for y in 0..self.height {
+        for y in 0..self.height - 1 {
             if self.is_reflected_column(y, include_error) {
                 return (y as u64 + 1) * 100;
             }
@@ -42,27 +36,33 @@ impl Map {
         panic!();
     }
 
-    fn is_reflected_column(&self, mut y: usize, include_error: bool) -> bool {
-        let mut y2 = y + 1;
-        if y2 >= self.height {
-            return false;
-        }
+    fn is_reflected_column(&self, y: usize, include_error: bool) -> bool {
+        Self::is_reflected(&self.rows, y, self.height, include_error)
+    }
 
+    fn is_reflected_row(&self, x: usize, include_error: bool) -> bool {
+        Self::is_reflected(&self.columns, x, self.width, include_error)
+    }
+
+    fn is_reflected(vec: &Vec<u64>, mut index: usize, limit: usize, include_error: bool) -> bool {
+        let mut index2 = index + 1;
         let mut errors = 0;
-        while y2 < self.height {
-            if is_single_error(self.rows[y], self.rows[y2]) {
+        while index2 < limit {
+            if Self::is_single_error(vec[index], vec[index2]) {
                 errors += 1;
-            }
-            else if self.rows[y] != self.rows[y2] {
+                if errors > 1 {
+                    return false;
+                }
+            } else if vec[index] != vec[index2] {
                 return false;
             }
 
-            if let Some(y_new) = y.checked_sub(1) {
-                y = y_new;
+            if let Some(index_new) = index.checked_sub(1) {
+                index = index_new;
             } else {
                 break;
             }
-            y2 += 1;
+            index2 += 1;
         }
 
         if include_error {
@@ -72,33 +72,12 @@ impl Map {
         }
     }
 
-    fn is_reflected_row(&self, mut x: usize, include_error: bool) -> bool {
-        let mut x2 = x + 1;
-        if x2 >= self.width {
+    fn is_single_error(n1: u64, n2: u64) -> bool {
+        let x = n1 ^ n2;
+        if x == 0 {
             return false;
         }
-
-        let mut errors = 0;
-        while x2 < self.width {
-            if is_single_error(self.columns[x], self.columns[x2]) {
-                errors += 1;
-            } else if self.columns[x] != self.columns[x2] {
-                return false;
-            }
-
-            if let Some(x_new) = x.checked_sub(1) {
-                x = x_new;
-            } else {
-                break;
-            }
-            x2 += 1;
-        }
-
-        if include_error {
-            return errors == 1;
-        } else {
-            return errors == 0;
-        }
+        return x & (x - 1) == 0;
     }
 
     fn parse(input: &Vec<&str>) -> Self {
