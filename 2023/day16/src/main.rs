@@ -2,44 +2,66 @@ use std::collections::{HashMap, HashSet};
 
 fn main() {
     let input = get_input();
-    let map = Map::from(input);
-    let result_part1 = navigate_map(&map);
+    let result_part1 = part1(input);
     println!("Part1: {}", result_part1);
+    let result_part2 = part2(input);
+    println!("Part2: {}", result_part2);
 }
 
-fn navigate_map(map: &Map) -> usize {
-    let initial_position = Position { x: 0, y: 0 };
-    let mut visited = Visited::new(map);
-    visited.mark(&initial_position);
-    let mut beams = vec![Beam {
-        position: initial_position,
+fn part1(input: &str) -> usize {
+    let map = Map::from(input);
+    let beam = Beam {
+        position: Position { x: 0, y: 0 },
         direction: Direction::Right,
-    }];
+    };
+    let result = map.count_visited(beam);
+    return result;
+}
 
-    let mut cache = HashSet::new();
-    while let Some(mut beam) = beams.pop() {
-        if cache.contains(&beam) {
-            continue;
-        } else {
-            cache.insert(beam.clone());
-        }
-        let next_target = map.get_next_mirror(&beam.position, beam.direction);
-        match beam.step_towards_target(map, next_target) {
-            StepResult::Ok => {
-                visited.mark(&beam.position);
-                beams.push(beam);
-            }
-            StepResult::MapEdge => {}
-            StepResult::Target => {
-                visited.mark(&beam.position);
-                let mut beams_new = beam.reflect(map);
-                beams.append(&mut beams_new);
-            }
+fn part2(input: &str) -> usize {
+    let map = Map::from(input);
+    let map_width = map.mirrors_columns.len();
+    let map_height = map.mirrors_rows.len();
+    let mut max = usize::MIN;
+    for x in 0..map_width {
+        let beam = Beam {
+            position: Position { x, y: 0 },
+            direction: Direction::Down,
         };
+        let result = map.count_visited(beam);
+        max = max.max(result);
+
+        let beam = Beam {
+            position: Position {
+                x,
+                y: map_height - 1,
+            },
+            direction: Direction::Up,
+        };
+        let result = map.count_visited(beam);
+        max = max.max(result);
     }
 
-    let visited = visited.count();
-    return visited;
+    for y in 0..map_height {
+        let beam = Beam {
+            position: Position { x: 0, y },
+            direction: Direction::Right,
+        };
+        let result = map.count_visited(beam);
+        max = max.max(result);
+
+        let beam = Beam {
+            position: Position {
+                x: map_width - 1,
+                y,
+            },
+            direction: Direction::Left,
+        };
+        let result = map.count_visited(beam);
+        max = max.max(result);
+    }
+
+    return max;
 }
 
 struct Visited {
@@ -65,99 +87,6 @@ impl Visited {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-struct Beam {
-    position: Position,
-    direction: Direction,
-}
-
-impl Beam {
-    fn reflect(&self, map: &Map) -> Vec<Beam> {
-        let mirror = map.get_mirror(&self.position).unwrap();
-        let beams = mirror
-            .reflect(self.direction)
-            .iter()
-            .copied()
-            .map(|direction| Beam {
-                position: self.position.clone(),
-                direction,
-            })
-            .collect();
-        return beams;
-    }
-
-    fn step_towards_target(&mut self, map: &Map, target: Option<Position>) -> StepResult {
-        if let Some(pos) = self.position.step(self.direction, map) {
-            self.position = pos;
-            if let Some(target) = target {
-                if target == self.position {
-                    return StepResult::Target;
-                }
-            }
-            return StepResult::Ok;
-        }
-        return StepResult::MapEdge;
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum StepResult {
-    Ok,
-    Target,
-    MapEdge,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-struct Position {
-    x: usize,
-    y: usize,
-}
-
-impl Position {
-    fn step(&self, direction: Direction, map: &Map) -> Option<Self> {
-        match direction {
-            Direction::Up => {
-                let x = self.x;
-                if let Some(y) = self.y.checked_add_signed(-1) {
-                    return Some(Position { x, y });
-                }
-                return None;
-            }
-            Direction::Down => {
-                let x = self.x;
-                let y = self.y + 1;
-                if y >= map.mirrors_rows.len() {
-                    return None;
-                }
-                return Some(Position { x, y });
-            }
-            Direction::Right => {
-                let x = self.x + 1;
-                let y = self.y;
-                if x >= map.mirrors_columns.len() {
-                    return None;
-                }
-                return Some(Position { x, y });
-            }
-            Direction::Left => {
-                let y = self.y;
-                if let Some(x) = self.x.checked_add_signed(-1) {
-                    return Some(Position { x, y });
-                }
-                return None;
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
 #[derive(Debug)]
 struct Map {
     mirrors_columns: Vec<HashMap<usize, Mirror>>,
@@ -165,6 +94,36 @@ struct Map {
 }
 
 impl Map {
+    fn count_visited(&self, beam: Beam) -> usize {
+        let mut visited = Visited::new(self);
+        visited.mark(&beam.position);
+        let mut beams = vec![beam];
+        let mut cache = HashSet::new();
+        while let Some(mut beam) = beams.pop() {
+            if cache.contains(&beam) {
+                continue;
+            } else {
+                cache.insert(beam.clone());
+            }
+            let next_target = self.get_next_mirror(&beam.position, beam.direction);
+            match beam.step_towards_target(self, next_target) {
+                StepResult::Ok => {
+                    visited.mark(&beam.position);
+                    beams.push(beam);
+                }
+                StepResult::MapEdge => {}
+                StepResult::Target => {
+                    visited.mark(&beam.position);
+                    let mut beams_new = beam.reflect(self);
+                    beams.append(&mut beams_new);
+                }
+            };
+        }
+
+        let visited = visited.count();
+        return visited;
+    }
+
     fn get_mirror(&self, position: &Position) -> Option<Mirror> {
         self.mirrors_rows[position.y].get(&position.x).copied()
     }
@@ -300,6 +259,99 @@ impl Mirror {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+struct Beam {
+    position: Position,
+    direction: Direction,
+}
+
+impl Beam {
+    fn reflect(&self, map: &Map) -> Vec<Beam> {
+        let mirror = map.get_mirror(&self.position).unwrap();
+        let beams = mirror
+            .reflect(self.direction)
+            .iter()
+            .copied()
+            .map(|direction| Beam {
+                position: self.position.clone(),
+                direction,
+            })
+            .collect();
+        return beams;
+    }
+
+    fn step_towards_target(&mut self, map: &Map, target: Option<Position>) -> StepResult {
+        if let Some(pos) = self.position.step(self.direction, map) {
+            self.position = pos;
+            if let Some(target) = target {
+                if target == self.position {
+                    return StepResult::Target;
+                }
+            }
+            return StepResult::Ok;
+        }
+        return StepResult::MapEdge;
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum StepResult {
+    Ok,
+    Target,
+    MapEdge,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+struct Position {
+    x: usize,
+    y: usize,
+}
+
+impl Position {
+    fn step(&self, direction: Direction, map: &Map) -> Option<Self> {
+        match direction {
+            Direction::Up => {
+                let x = self.x;
+                if let Some(y) = self.y.checked_add_signed(-1) {
+                    return Some(Position { x, y });
+                }
+                return None;
+            }
+            Direction::Down => {
+                let x = self.x;
+                let y = self.y + 1;
+                if y >= map.mirrors_rows.len() {
+                    return None;
+                }
+                return Some(Position { x, y });
+            }
+            Direction::Right => {
+                let x = self.x + 1;
+                let y = self.y;
+                if x >= map.mirrors_columns.len() {
+                    return None;
+                }
+                return Some(Position { x, y });
+            }
+            Direction::Left => {
+                let y = self.y;
+                if let Some(x) = self.x.checked_add_signed(-1) {
+                    return Some(Position { x, y });
+                }
+                return None;
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 fn get_input() -> &'static str {
     include_str!("./input.txt")
 }
@@ -370,8 +422,14 @@ mod tests {
     #[test]
     fn part1_example() {
         let input = get_example_input();
-        let map: Map = Map::from(input);
-        let result = navigate_map(&map);
+        let result = part1(input);
         assert_eq!(result, 46);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = part2(input);
+        assert_eq!(result, 51);
     }
 }
