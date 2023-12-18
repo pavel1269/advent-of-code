@@ -2,10 +2,23 @@ fn main() {
     let input = get_input();
     let result_part1 = part1(input);
     println!("Part1: {}", result_part1);
+    let result_part2 = part2(input);
+    println!("Part2: {}", result_part2);
 }
 
 fn part1(input: &str) -> usize {
-    let plan = Plan::from(input);
+    let plan = Plan::from(input, false);
+    let area = area(&plan);
+    return area;
+}
+
+fn part2(input: &str) -> usize {
+    let plan = Plan::from(input, true);
+    let area = area(&plan);
+    return area;
+}
+
+fn area(plan: &Plan) -> usize {
     let polygon = plan.construct_circumference();
     let area = area_of_polygon(&polygon);
     let permimeter = perimeter_of_polygon(&polygon);
@@ -49,8 +62,8 @@ impl Plan {
         return polygon;
     }
 
-    fn from(input: &str) -> Self {
-        let digs = input.lines().map(|line| Dig::from(line)).collect();
+    fn from(input: &str, use_hex: bool) -> Self {
+        let digs = input.lines().map(|line| Dig::from(line, use_hex)).collect();
         let result = Plan { digs };
         return result;
     }
@@ -83,12 +96,20 @@ struct Dig {
 }
 
 impl Dig {
-    fn from(str: &str) -> Self {
+    fn from(str: &str, use_hex: bool) -> Self {
         let parts: Vec<&str> = str.split(' ').collect();
-        let direction = Direction::from(parts[0].chars().next().unwrap()).unwrap();
-        let length = parts[1].parse().unwrap();
-        let result = Self { length, direction };
-        return result;
+        if use_hex {
+            let direction = Direction::from_digit(parts[2].chars().skip(7).next().unwrap()).unwrap();
+            let length_str = parts[2].get(2..=6).unwrap();
+            let length = isize::from_str_radix(length_str, 16).unwrap();
+            let result = Self { length, direction };
+            return result;
+        } else {
+            let direction = Direction::from_char(parts[0].chars().next().unwrap()).unwrap();
+            let length = parts[1].parse().unwrap();
+            let result = Self { length, direction };
+            return result;
+        }
     }
 }
 
@@ -109,12 +130,22 @@ impl Direction {
         }
     }
 
-    fn from(char: char) -> Option<Self> {
+    fn from_char(char: char) -> Option<Self> {
         match char {
             'L' => Some(Self::Left),
             'R' => Some(Self::Right),
             'U' => Some(Self::Up),
             'D' => Some(Self::Down),
+            _ => None,
+        }
+    }
+
+    fn from_digit(char: char) -> Option<Self> {
+        match char {
+            '2' => Some(Self::Left),
+            '0' => Some(Self::Right),
+            '3' => Some(Self::Up),
+            '1' => Some(Self::Down),
             _ => None,
         }
     }
@@ -137,5 +168,12 @@ mod tests {
         let input = get_example_input();
         let result = part1(input);
         assert_eq!(result, 62);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = part2(input);
+        assert_eq!(result, 952408144115);
     }
 }
