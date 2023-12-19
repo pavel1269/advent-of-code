@@ -1,13 +1,20 @@
+const PARTS: usize = 4;
+const TARGET_START: &str = "in";
+const TARGET_ACCEPT: &str = "A";
+const TARGET_REJECT: &str = "R";
+
 fn main() {
     let input = get_input();
     let result_part1 = part1(&input);
     println!("Part1: {}", result_part1);
+    let result_part2 = part2(&input);
+    println!("Part2: {}", result_part2);
 }
 
 fn part1(input: &str) -> usize {
-    let mut sum = 0;
     let (rules, parts) = parse_input(input);
 
+    let mut sum = 0;
     for part in parts.iter() {
         if rules.is_accepted(part) {
             sum += part.sum();
@@ -17,23 +24,218 @@ fn part1(input: &str) -> usize {
     return sum;
 }
 
+fn part2(input: &str) -> usize {
+    let (rules, _) = parse_input(input);
+    let mut map = Mapping::init(1, 4000);
+    map.apply_rules(&rules);
+    let result = map.sum_for(&TARGET_ACCEPT.to_string());
+    return result;
+}
+
+#[derive(Debug)]
+struct Mapping {
+    map: Vec<RangeMapping>,
+}
+
+impl Mapping {
+    fn sum_for(&self, target: &String) -> usize {
+        self.map.iter().map(|map| map.sum_for(target)).sum()
+    }
+
+    fn apply_rules(&mut self, rules: &Rules) {
+        while !self.is_done() {
+            let index = self.find_first_not_done();
+            let mut mapping = self.map.get(index).cloned().unwrap();
+            self.map.remove(index);
+            let rule = rules.get_rule(&mapping.target);
+            let mappings = mapping.apply(rule);
+            for mapping in mappings.into_iter().rev() {
+                self.map.insert(index, mapping);
+            }
+        }
+    }
+
+    fn find_first_not_done(&self) -> usize {
+        self.map
+            .iter()
+            .enumerate()
+            .filter(|(_, map)| !map.is_done())
+            .map(|(index, _)| index)
+            .next()
+            .unwrap()
+    }
+
+    fn is_done(&self) -> bool {
+        self.map.iter().all(|map| map.is_done())
+    }
+
+    fn init(from: usize, to: usize) -> Self {
+        let map = vec![RangeMapping::init(from, to)];
+        let result = Self { map };
+        return result;
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RangeMapping {
+    map: [Range; PARTS],
+    target: String,
+}
+
+impl RangeMapping {
+    fn sum_for(&self, target: &String) -> usize {
+        if &self.target == target {
+            return self.map.iter().map(|range| range.to.abs_diff(range.from) + 1).product();
+        }
+        return 0;
+    }
+
+    fn apply(&mut self, rule: &Rule) -> Vec<Self> {
+        let mut result = Vec::new();
+        let mut processing = Some(self.clone());
+        for rule in rule.rules.iter() {
+            if let Some(processing_map) = &processing {
+                let (map1, map2) = processing_map.cut(rule);
+                let mut processing_set = false;
+                if let Some(map) = map1 {
+                    if map.target == self.target {
+                        processing = Some(map);
+                        processing_set = true;
+                    } else {
+                        result.push(map);
+                    }
+                }
+                if let Some(map) = map2 {
+                    if map.target == self.target {
+                        assert!(!processing_set);
+                        processing = Some(map);
+                    } else {
+                        result.push(map);
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+        if let Some(mut map) = processing {
+            map.target = rule.else_name.clone();
+            result.push(map);
+        }
+
+        return result;
+    }
+
+    fn cut(&self, rule: &RuleCondition) -> (Option<RangeMapping>, Option<RangeMapping>) {
+        let (index, amount) = rule
+            .amount
+            .iter()
+            .copied()
+            .enumerate()
+            .filter(|(_, amount)| amount.is_some())
+            .map(|(index, amount)| (index, amount.unwrap()))
+            .next()
+            .unwrap();
+        let (range1, range2) = self.map[index].cut(rule.op, amount);
+
+        let map1 = self.apply_cut(range1, index, &rule.target, rule.op == RuleOperator::Less);
+        let map2 = self.apply_cut(range2, index, &rule.target, rule.op == RuleOperator::More);
+
+        return (map1, map2);
+    }
+
+    fn apply_cut(
+        &self,
+        cut_range: Option<Range>,
+        index: usize,
+        rule_target: &String,
+        use_rule_target: bool,
+    ) -> Option<RangeMapping> {
+        if let Some(range) = cut_range {
+            let target = if use_rule_target {
+                rule_target.clone()
+            } else {
+                self.target.clone()
+            };
+            let mut map = self.map.clone();
+            map[index] = range;
+
+            Some(Self { map, target })
+        } else {
+            None
+        }
+    }
+
+    fn is_done(&self) -> bool {
+        self.target == TARGET_ACCEPT || self.target == TARGET_REJECT
+    }
+
+    fn init(from: usize, to: usize) -> Self {
+        let map: [Range; PARTS] = vec![Range { from, to }; PARTS].try_into().unwrap();
+        let result = TARGET_START.to_string();
+        let result = Self {
+            map,
+            target: result,
+        };
+        return result;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Range {
+    from: usize,
+    to: usize,
+}
+
+impl Range {
+    fn cut(&self, op: RuleOperator, amount: usize) -> (Option<Self>, Option<Self>) {
+        let range1_to = match op {
+            RuleOperator::Less => amount - 1,
+            RuleOperator::More => amount,
+        };
+        if self.to <= range1_to {
+            return (Some(self.clone()), None);
+        } else if self.from > range1_to {
+            return (None, Some(self.clone()));
+        } else {
+            return (
+                Some(Self {
+                    from: self.from,
+                    to: range1_to,
+                }),
+                Some(Self {
+                    from: range1_to + 1,
+                    to: self.to,
+                }),
+            );
+        }
+    }
+}
+
 struct Rules {
     rules: Vec<Rule>,
 }
 
 impl Rules {
+    fn get_rule(&self, name: &String) -> &Rule {
+        self.rules
+            .iter()
+            .filter(|rule| &rule.name == name)
+            .next()
+            .unwrap()
+    }
+
     fn is_accepted(&self, part: &Part) -> bool {
-        let mut state = "in".to_string();
-        let state_accepted = "A".to_string();
-        let state_rejected = "R".to_string();
-        while state != state_accepted && state != state_rejected {
-            let rule = self.rules.iter().filter(|rule| rule.name == state).next().unwrap();
+        let mut state = TARGET_START.to_string();
+        while state != TARGET_ACCEPT && state != TARGET_REJECT {
+            let rule = self.get_rule(&state);
             state = rule.get_next_state(part);
         }
-        return state == state_accepted;
+        return state == TARGET_ACCEPT;
     }
 }
 
+#[derive(Debug)]
 struct Rule {
     name: String,
     rules: Vec<RuleCondition>,
@@ -69,30 +271,24 @@ impl Rule {
     }
 }
 
+#[derive(Debug)]
 struct RuleCondition {
     op: RuleOperator,
-    amount_x: Option<usize>,
-    amount_m: Option<usize>,
-    amount_a: Option<usize>,
-    amount_s: Option<usize>,
+    amount: [Option<usize>; PARTS],
     target: String,
 }
 
 impl RuleCondition {
     fn applies(&self, part: &Part) -> bool {
-        if let Some(amount) = self.amount_x {
-            return self.op.evaluate(amount, part.x);
-        }
-        if let Some(amount) = self.amount_m {
-            return self.op.evaluate(amount, part.m);
-        }
-        if let Some(amount) = self.amount_a {
-            return self.op.evaluate(amount, part.a);
-        }
-        if let Some(amount) = self.amount_s {
-            return self.op.evaluate(amount, part.s);
-        }
-        panic!()
+        let (index, amount) = self
+            .amount
+            .iter()
+            .enumerate()
+            .filter(|(_, amount)| amount.is_some())
+            .map(|(index, amount)| (index, amount.unwrap()))
+            .next()
+            .unwrap();
+        return self.op.evaluate(amount, part.amounts[index]);
     }
 
     fn from(str: &str) -> Self {
@@ -100,33 +296,25 @@ impl RuleCondition {
         let captures = regex.captures(str).unwrap();
         let gift = captures[1].chars().next().unwrap();
         let op = RuleOperator::from(captures[2].chars().next().unwrap()).unwrap();
-        let mut amount_x = None;
-        let mut amount_m = None;
-        let mut amount_a = None;
-        let mut amount_s = None;
-        let amount = captures[3].parse().unwrap();
+        let mut amount = [None, None, None, None];
+        let amount_number = captures[3].parse().unwrap();
         let target = captures[4].to_string();
 
-        match gift {
-            'x' => amount_x = Some(amount),
-            'm' => amount_m = Some(amount),
-            'a' => amount_a = Some(amount),
-            's' => amount_s = Some(amount),
+        let index = match gift {
+            'x' => 0,
+            'm' => 1,
+            'a' => 2,
+            's' => 3,
             _ => panic!(),
-        }
-
-        let result = Self {
-            op,
-            amount_x,
-            amount_m,
-            amount_a,
-            amount_s,
-            target,
         };
+        amount[index] = Some(amount_number);
+
+        let result = Self { op, amount, target };
         return result;
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RuleOperator {
     Less,
     More,
@@ -151,31 +339,24 @@ impl RuleOperator {
 
 #[derive(Debug)]
 struct Part {
-    x: usize,
-    m: usize,
-    a: usize,
-    s: usize,
+    amounts: [usize; PARTS],
 }
 
 impl Part {
     fn sum(&self) -> usize {
-        self.x + self.m + self.a + self.s
+        self.amounts.iter().sum()
     }
 
     fn from(str: &str) -> Self {
-        let amounts: Vec<usize> = str
+        let amounts: [usize; PARTS] = str
             .get(1..str.len() - 1)
             .unwrap()
             .split(',')
             .map(|split| split.split('=').skip(1).next().unwrap().parse().unwrap())
-            .collect();
-        assert!(amounts.len() == 4);
-        let result = Self {
-            x: amounts[0],
-            m: amounts[1],
-            a: amounts[2],
-            s: amounts[3],
-        };
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        let result = Self { amounts };
         return result;
     }
 }
@@ -213,5 +394,12 @@ mod tests {
         let input = get_example_input();
         let result = part1(&input);
         assert_eq!(result, 19114);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = part2(&input);
+        assert_eq!(result, 167409079868000);
     }
 }
