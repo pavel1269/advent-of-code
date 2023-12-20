@@ -4,12 +4,51 @@ fn main() {
     let input = get_input();
     let result_part1 = part1(&input);
     println!("Part1: {}", result_part1);
+    let result_part2 = part2(&input);
+    println!("Part2: {}", result_part2);
 }
 
 fn part1(input: &str) -> usize {
     let mut circuit = Circuit::from(input);
-    let (times_low, times_high) = circuit.run_times(1000);
+    let (times_low, times_high) = circuit.run_till(|cycle, _| cycle == 1000);
     return times_low * times_high;
+}
+
+fn part2(input: &str) -> usize {
+    let mut circuit = Circuit::from(input);
+    let target = "rx".to_string();
+    let pre_targets: Vec<_> = circuit
+        .components
+        .iter()
+        .filter(|c| c.targets.contains(&target))
+        .collect();
+    assert!(pre_targets.len() == 1);
+    let pre_target_name = pre_targets.get(0).unwrap().name.clone();
+    let mut cycles: HashMap<String, Option<usize>> = HashMap::new();
+    circuit
+        .components
+        .iter()
+        .filter(|c| c.targets.contains(&pre_target_name))
+        .map(|c| c.name.clone())
+        .for_each(|target| {
+            cycles.insert(target, None);
+        });
+
+    let _ = circuit.run_till(|cycle, ongoing_signal| {
+        if ongoing_signal.to == pre_target_name && ongoing_signal.signal == Signal::High {
+            if let None = cycles.get(&ongoing_signal.from).unwrap() {
+                *cycles.get_mut(&ongoing_signal.from).unwrap() = Some(cycle + 1);
+            }
+        }
+        return cycles.values().all(|v| v.is_some());
+    });
+
+    let result = cycles
+        .values()
+        .copied()
+        .reduce(|a, b| Some(num::integer::lcm(a.unwrap(), b.unwrap())))
+        .unwrap();
+    return result.unwrap();
 }
 
 #[derive(Debug, Clone)]
@@ -25,11 +64,15 @@ struct OngoinSignal {
 }
 
 impl Circuit {
-    fn run_times(&mut self, times: usize) -> (usize, usize) {
+    fn run_till(
+        &mut self,
+        mut condition: impl FnMut(usize, &OngoinSignal) -> bool,
+    ) -> (usize, usize) {
         let mut cycle = 0;
         let mut signal_count_low = 0;
         let mut signal_count_high = 0;
-        while cycle != times {
+        let mut end = false;
+        while !end {
             let from = self
                 .components
                 .iter()
@@ -45,6 +88,11 @@ impl Circuit {
             }]);
 
             while let Some(ongoing_signal) = signals.pop_front() {
+                end = condition(cycle, &ongoing_signal);
+                if end {
+                    break;
+                }
+
                 match ongoing_signal.signal {
                     Signal::Low => signal_count_low += 1,
                     Signal::High => signal_count_high += 1,
@@ -73,7 +121,7 @@ impl Circuit {
 
             cycle += 1;
         }
-        
+
         return (signal_count_low, signal_count_high);
     }
 
