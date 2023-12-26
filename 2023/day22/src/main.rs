@@ -7,6 +7,8 @@ fn main() {
     let input = get_input();
     let result_part1 = part1(&input);
     println!("Part1: {}", result_part1);
+    let result_part2 = part2(&input);
+    println!("Part2: {}", result_part2);
 }
 
 fn part1(input: &str) -> usize {
@@ -26,6 +28,64 @@ fn part1(input: &str) -> usize {
 
     let result = bricks.len() - supports.len();
     return result;
+}
+
+fn part2(input: &str) -> usize {
+    let mut bricks = parse_input(input);
+    land_bricks(&mut bricks);
+
+    let mut supports = HashMap::with_capacity(bricks.len());
+    let mut holds: HashMap<usize, HashSet<usize>> = HashMap::with_capacity(bricks.len());
+    for (index, brick) in bricks.iter().enumerate() {
+        if brick.is_on_groud() {
+            continue;
+        }
+        let support = supporting_bricks(index, &bricks);
+        supports.insert(index, support.clone());
+        support.into_iter().for_each(|holder| {
+            holds.entry(holder).or_default().insert(index);
+        });
+    }
+
+    let mut fall = 0;
+    for index in bricks.iter().enumerate().map(|(index, _)| index) {
+        let affected = holds.get(&index);
+        if affected.is_none() {
+            continue;
+        }
+        let mut affected = affected.unwrap().clone();
+        affected.insert(index);
+
+        let mut removed = HashSet::from([index]);
+        let mut removed_last_count = 0;
+        while removed.len() != removed_last_count {
+            removed_last_count = removed.len();
+            supports
+                .iter()
+                .filter(|(support_index, supports)| {
+                    affected.contains(&support_index)
+                        && supports
+                            .iter()
+                            .all(|support_index| removed.contains(support_index))
+                })
+                .map(|(&index, _)| index)
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .for_each(|index| {
+                    removed.insert(index);
+                });
+            holds
+                .iter()
+                .filter(|(hold_index, _)| removed.contains(&hold_index))
+                .flat_map(|(_, holds)| holds)
+                .for_each(|&affectee| {
+                    affected.insert(affectee);
+                });
+        }
+
+        fall += removed.len() - 1;
+    }
+    return fall;
 }
 
 fn land_bricks(bricks: &mut Vec<Brick>) {
@@ -126,7 +186,11 @@ impl Brick {
         assert_eq!(points.len(), 2);
         let start = Point::from(points[0]);
         let end = Point::from(points[1]);
-        start.coords.iter().zip(end.coords.iter()).for_each(|(a, b)| assert!(a <= b));
+        start
+            .coords
+            .iter()
+            .zip(end.coords.iter())
+            .for_each(|(a, b)| assert!(a <= b));
         let result = Self { start, end };
         return result;
     }
@@ -189,5 +253,12 @@ mod tests {
         let input = get_example_input();
         let result = part1(&input);
         assert_eq!(result, 5);
+    }
+
+    #[test]
+    fn part2_example() {
+        let input = get_example_input();
+        let result = part2(&input);
+        assert_eq!(result, 7);
     }
 }
